@@ -1,0 +1,61 @@
+{
+  "name": "authorization-server",
+  "version": "1.0.0",
+  "description": "An OAuth2 authorization server supporting OpenID Connect",
+  "main": "app.js",
+  "scripts": {
+    "start-watch": "npm run build && nodemon -e ts -w ./src -i ./src/**/*.spec.ts -x npm run watch-serve",
+    "serve": "node dist/server.js",
+    "watch-serve": "ts-node --inspect src/app.ts",
+    "build": "tsc",
+    "build-watch": "tsc -w",
+    "tslint-config": "tslint -c tslint.json -p tsconfig.json",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shakedmanes/authorization-server.git"
+  },
+  "keywords": [
+    "oauth2",
+    "openidconnect",
+    "authorization",
+    "authentication",
+    "passport",
+    "express"
+  ],
+  "author": "Shaked Manes & Michael T",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/shakedmanes/authorization-server/issues"
+  },
+  "homepage": "https://github.com/shakedmanes/authorization-server#readme",
+  "bin": {
+    "tslint": "./node_modules/.bin/tslint",
+    "tsc": "./node_moduels/.bin/tsc",
+    "nodemon": "./node_modules/.bin/nodemon"
+  },
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "dotenv": "^6.0.0",
+    "express": "^4.16.3",
+    "mongoose": "^5.2.6",
+    "morgan": "^1.9.0",
+    "oauth2orize": "^1.11.0",
+    "passport": "^0.4.0"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.17.0",
+    "@types/dotenv": "^4.0.3",
+    "@types/express": "^4.16.0",
+    "@types/mongoose": "^5.2.3",
+    "@types/morgan": "^1.7.35",
+    "@types/oauth2orize": "^1.8.3",
+    "@types/passport": "^0.4.6",
+    "nodemon": "^1.18.3",
+    "ts-node": "^7.0.0",
+    "tslint": "^5.11.0",
+    "tslint-config-airbnb": "^5.9.2",
+    "typescript": "^3.0.1"
+  }
+}
