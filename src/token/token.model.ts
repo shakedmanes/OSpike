@@ -1,5 +1,7 @@
 import { Schema, model } from 'mongoose';
 import { IBaseModel } from '../generic/generic.interface';
+import { collectionName as ClientModelName } from '../client/client.model';
+import { collectionName as UserModelName } from '../user/user.model';
 import { tokenUniqueValueValidator } from './token.validator';
 import { clientRefValidator } from '../client/client.validator';
 import { userRefValidator } from '../user/user.validator';
@@ -16,13 +18,13 @@ export interface IToken extends IBaseModel {
 const tokenSchema = new Schema({
   clientId: {
     type: String,
-    ref: 'Client',
+    ref: ClientModelName,
     required: true,
     validate: clientRefValidator,
   },
   userId: {
     type: String,
-    ref: 'User',
+    ref: UserModelName,
     required: true,
     validate: userRefValidator,
   },

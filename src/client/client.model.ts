@@ -1,5 +1,6 @@
 import { Schema, model } from 'mongoose';
 import { IBaseModel } from '../generic/generic.interface';
+import { collectionName as TeamUserModelName } from '../teamUser/teamUser.model';
 import {
   clientUniqueNameValidator,
   clientUniqueIdValidator,
@@ -51,7 +52,7 @@ const clientSchema = new Schema({
   },
   teamUserId: {
     type: String,
-    ref: 'TeamUser',
+    ref: TeamUserModelName,
     required: true,
     validate: teamUserRefValidator,
   },
