@@ -1,22 +1,25 @@
 import { Schema, model } from 'mongoose';
 import { IBaseModel } from '../generic/generic.interface';
 import { collectionName as ClientModelName, IClient } from '../client/client.model';
-import { collectionName as UserModelName } from '../user/user.model';
-import { codeUniqueValueValidator } from './code.validator';
+import { collectionName as UserModelName, IUser } from '../user/user.model';
+import { authCodeUniqueValueValidator } from './authCode.validator';
+import config from '../config';
 
-export interface ICode extends IBaseModel {
+export interface IAuthCode extends IBaseModel {
   value: string;
-  clientId: string;
-  userId: string;
+  clientId: string | IClient; // Client ID or Client Model after population
+  userId: string | IUser; // User ID or User model after population
   redirectUri: string;
+  scopes: [string];
+  expireAt: Date;
 }
 
-const codeSchema = new Schema({
+const authCodeSchema = new Schema({
   value: {
     type: String,
     unique: true,
     required: true,
-    validate: codeUniqueValueValidator,
+    validate: authCodeUniqueValueValidator,
   },
   clientId: {
     type: String,
@@ -32,21 +35,30 @@ const codeSchema = new Schema({
     type: String,
     required: true,
   },
+  scopes: {
+    type: [String],
+    required: true,
+  },
+  expireAt: {
+    type: Date,
+    default: Date.now,
+    expires: config.AUTH_CODE_EXPIRATION_TIME,
+  },
 });
 
 // Ensures there's only one code for client and user combination
-codeSchema.index({ clientId: 1, userId: 1 }, { unique: true });
+authCodeSchema.index({ clientId: 1, userId: 1 }, { unique: true });
 
 // TODO: Implement proper exception handling for this throwed error
 // Checking if redirectUri specified is in the redirect uris of the client model
-codeSchema.pre<ICode>('validate', async function () {
+authCodeSchema.pre<IAuthCode>('validate', async function () {
   const clientModel = await model<IClient>(ClientModelName).findOne({ id: this.clientId });
   if (clientModel && clientModel.redirectUris.indexOf(this.redirectUri) !== -1) {
     throw new Error('Reference Error - RedirectUri doesn\'t exists in client model');
   }
 });
 
-export const collectionName = 'Code';
-const codeModel = model<ICode>(collectionName, codeSchema);
+export const collectionName = 'AuthCode';
+const authCodeModel = model<IAuthCode>(collectionName, authCodeSchema);
 
-export default codeModel;
+export default authCodeModel;

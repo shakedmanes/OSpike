@@ -1,14 +1,14 @@
 import { refValidator, uniqueValidator } from '../generic/generic.validator';
-import { collectionName } from './token.model';
+import { collectionName } from './accessToken.model';
 
-// Token reference validator
-export const tokenRefValidator = [
+// Access Token reference validator
+export const accessTokenRefValidator = [
   refValidator.bind({}, collectionName, '_id'),
   `Reference Error - ${collectionName} {VALUE} does not exist`,
 ];
 
-// Token unique value validator
-export const tokenUniqueValueValidator = [
+// Access Token unique value validator
+export const accessTokenUniqueValueValidator = [
   uniqueValidator.bind({}, collectionName, 'value'),
   'Unique Error - Value {VALUE} already exists',
 ];
