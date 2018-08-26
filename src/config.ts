@@ -10,10 +10,13 @@ const config = {
   REFRESH_TOKEN_LENGTH: 50,
 
   // Bcrypt
-  BCRYPT_ROUNDS: 'u98wGn!@nNoF_)Y98t@yldKE38xW7#-#',
+  BCRYPT_ROUNDS: 8,
 
   // Session
   SESSION_SECRET: 'bla_bla_secret_session_dont_tell_anyone',
+
+  // MongoDB Url
+  mongoUrl: 'mongodb://admin:Aa123456@ds125352.mlab.com:25352/authorization_server',
 };
 
 export default config;

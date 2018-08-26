@@ -1,6 +1,7 @@
 import * as oauth2orize from 'oauth2orize';
-import * as login from 'connect-ensure-login';
-import * as passport from 'passport';
+import { ensureLoggedIn } from 'connect-ensure-login';
+import passport from 'passport';
+import { Response, Request, NextFunction } from 'express';
 import {
   authCodeValueGenerator,
   accessTokenValueGenerator,
@@ -16,8 +17,12 @@ import { isScopeEquals } from '../utils/isEqual';
 
 // TODO: create specified config files with grants types
 // TODO: create generated session key for each of the requests
-
+// TODO: refactor ensureLoggedIn binding
 const server = oauth2orize.createServer();
+
+// Binds the route for login in ensure logged in middleware
+const loginUri = '/oauth2/login';
+const ensureLoggedInMiddleware = ensureLoggedIn.bind({}, loginUri);
 
 /**
  * Grant authorization codes
@@ -241,8 +246,8 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
  * Authorization Middlewares for Authorization endpoint
  * The authorization endpoint should implement the end user authentication.
  */
-const authorization = [
-  login.ensureLoggedIn(),
+export const authorizationEndpoint = [
+  ensureLoggedInMiddleware(),
   server.authorization(
     async (clientId, redirectUri, done) => {
       // TODO: Check if scope and areq includes and enforce them
@@ -253,12 +258,11 @@ const authorization = [
 
         // NEED TO VALIDATE CLIENT SECRET SOMEHOW
         // - MAYBE IN THE PASSPORT STRATEGYS MIDDLEWARES FOR THE ENDPOINT
-        done(null, client, redirectUri);
-      } else {
-        // Client specified not found or invalid redirect uri specified.
-        // Generates error - AuthorizationError('Unauthorized client', 'unauthorized_client')
-        done(null, false);
+        return done(null, client, redirectUri);
       }
+      // Client specified not found or invalid redirect uri specified.
+      // Generates error - AuthorizationError('Unauthorized client', 'unauthorized_client')
+      return done(null, false);
     },
     // Check if grant request qualifies for immediate approval
     async (client, user, scope, type, areq, done) => {
@@ -287,6 +291,13 @@ const authorization = [
   // like in https://github.com/scottksmith95/beerlocker/blob/master/beerlocker-6.1/controllers/oauth2.js#L126
 
   // TODO: Implement request handler for the user stage of allow authorization to requested scopes
+  (req: any, res: Response, next: NextFunction) => {
+    res.render('decision', {
+      transactionID: req.oauth2.transactionID,
+      user: req.user,
+      client: req.oauth2.client,
+    });
+  },
 ];
 
 /**
@@ -297,8 +308,8 @@ const authorization = [
  * client, the above grant middleware configured above will be invoked to send
  * a response.
  */
-const decision = [
-  login.ensureLoggedIn(),
+export const decisionEndpoint = [
+  ensureLoggedInMiddleware(),
   server.decision((req, done) => {
     // Pass the scope request down the chain
     return done(null, req.oauth2 ? { scope: req.oauth2.req.scope } : {});
@@ -313,10 +324,18 @@ const decision = [
  * exchange middleware will be invoked to handle the request.  Clients must
  * authenticate when making requests to this endpoint.
  */
-const token = [
+export const tokenEndpoint = [
   passport.authenticate(['basic', 'oauth2-client-password'], { session: false }),
   server.token(),
   server.errorHandler(),
+];
+
+// Authentication endpoints (login endpoints)
+export const loginForm = (req: Request, res: Response) => {
+  res.render('login');
+};
+export const loginMethod = [
+  passport.authenticate('local', { successReturnToOrRedirect: '/', failureRedirect: loginUri }),
 ];
 
 // Register serialialization and deserialization functions.

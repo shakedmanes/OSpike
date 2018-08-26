@@ -1,4 +1,4 @@
-import * as passport from 'passport';
+import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as BearerStrategy } from 'passport-http-bearer';
 import { Strategy as ClientPasswordStrategy } from 'passport-oauth2-client-password';
@@ -111,4 +111,3 @@ passport.serializeUser((user: IUser, done) => {
 passport.deserializeUser(async (id, done) => {
   done(null, await userModel.findOne({ _id: id }) || undefined);
 });
-// Add this to the server main for initializing passport things

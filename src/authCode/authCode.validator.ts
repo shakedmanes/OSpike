@@ -1,7 +1,6 @@
-import { model as getModel } from 'mongoose';
 import { refValidator, uniqueValidator } from '../generic/generic.validator';
-import { collectionName } from './authCode.model';
-
+import { collectionName } from './authCode.interface';
+console.log(collectionName);
 // Auth Code reference validator
 export const authCodeRefValidator = [
   refValidator.bind({}, collectionName, '_id'),
