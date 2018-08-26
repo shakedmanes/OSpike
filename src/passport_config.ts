@@ -4,7 +4,8 @@ import { Strategy as BearerStrategy } from 'passport-http-bearer';
 import { Strategy as ClientPasswordStrategy } from 'passport-oauth2-client-password';
 import { BasicStrategy } from 'passport-http';
 
-import userModel, { IUser } from './user/user.model';
+import userModel from './user/user.model';
+import { IUser } from './user/user.interface';
 import clientModel from './client/client.model';
 import accessTokenModel from './accessToken/accessToken.model';
 import { validatePasswordHash } from './utils/hashUtils';

@@ -1,5 +1,5 @@
 import { refValidator, uniqueValidator } from '../generic/generic.validator';
-import { collectionName } from './refreshToken.model';
+import { collectionName } from './refreshToken.interface';
 
 // Refresh Token reference validator
 export const refreshTokenRefValidator = [

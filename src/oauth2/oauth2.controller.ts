@@ -8,10 +8,12 @@ import {
   refreshTokenValueGenerator,
 } from '../utils/valueGenerator';
 import authCodeModel from '../authCode/authCode.model';
-import accessTokenModel, { IAccessToken } from '../accessToken/accessToken.model';
-import refreshTokenModel, { IRefreshToken } from '../refreshToken/refreshToken.model';
-import clientModel, { IClient } from '../client/client.model';
-import userModel, { IUser } from '../user/user.model';
+import accessTokenModel from '../accessToken/accessToken.model';
+import { IAccessToken } from '../accessToken/accessToken.interface';
+import refreshTokenModel from '../refreshToken/refreshToken.model';
+import clientModel from '../client/client.model';
+import { IClient } from '../client/client.interface';
+import userModel from '../user/user.model';
 import { validatePasswordHash } from '../utils/hashUtils';
 import { isScopeEquals } from '../utils/isEqual';
 

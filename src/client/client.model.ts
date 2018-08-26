@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
-import { IBaseModel } from '../generic/generic.interface';
-import { collectionName as TeamUserModelName } from '../teamUser/teamUser.model';
+import { collectionName as TeamUserModelName } from '../teamUser/teamUser.interface';
+import { IClient, collectionName } from './client.interface';
 import {
   clientUniqueNameValidator,
   clientUniqueIdValidator,
@@ -9,15 +9,6 @@ import {
   clientUniqueHostUriValidator,
 } from './client.validator';
 import { teamUserRefValidator } from '../teamUser/teamUser.validator';
-
-export interface IClient extends IBaseModel {
-  name: string;
-  id: string;
-  secret: string;
-  redirectUris: [string];
-  hostUri: string;
-  teamUserId: string;
-}
 
 const clientSchema = new Schema({
   name: {
@@ -58,7 +49,6 @@ const clientSchema = new Schema({
   },
 });
 
-export const collectionName = 'Client';
 const clientModel = model<IClient>(collectionName, clientSchema);
 
 export default clientModel;

@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose';
-import { IBaseModel } from '../generic/generic.interface';
-import { collectionName as ClientModelName, IClient } from '../client/client.model';
-import { collectionName as UserModelName, IUser } from '../user/user.model';
+import { collectionName as ClientModelName } from '../client/client.interface';
+import { collectionName as UserModelName } from '../user/user.interface';
+import { IAccessToken, collectionName } from './accessToken.interface';
 import { accessTokenUniqueValueValidator } from './accessToken.validator';
 import { clientRefValidator } from '../client/client.validator';
 import { userRefValidator } from '../user/user.validator';
@@ -9,15 +9,6 @@ import config from '../config';
 
 // TODO: Define scope model and scope types
 // TODO: Define specific grant types available for token
-
-export interface IAccessToken extends IBaseModel {
-  clientId: string | IClient; // Client ID or Client Model after population
-  userId: string | IUser; // User ID or User model after population
-  value: string;
-  scopes: [string];
-  grantType: string;
-  expireAt: Date;
-}
 
 const accessTokenSchema = new Schema({
   clientId: {
@@ -56,7 +47,6 @@ const accessTokenSchema = new Schema({
 // Ensures there's only one token for user in specific client app
 accessTokenSchema.index({ clientId: 1, userId: 1 }, { unique: true });
 
-export const collectionName = 'AccessToken';
 const accessTokenModel = model<IAccessToken>(collectionName, accessTokenSchema);
 
 export default accessTokenModel;

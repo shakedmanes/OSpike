@@ -1,5 +1,5 @@
 import { refValidator, uniqueValidator } from '../generic/generic.validator';
-import { collectionName } from './user.model';
+import { collectionName } from './user.interface';
 
 // User reference validator
 export const userRefValidator = [

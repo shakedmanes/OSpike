@@ -1,5 +1,5 @@
 import { refValidator, uniqueValidator } from '../generic/generic.validator';
-import { collectionName } from './teamUser.model';
+import { collectionName } from './teamUser.interface';
 
 // TeamUser reference validator
 export const teamUserRefValidator = [

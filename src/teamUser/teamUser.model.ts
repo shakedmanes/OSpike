@@ -1,11 +1,6 @@
 import { Schema, model } from 'mongoose';
-import { IBaseModel } from '../generic/generic.interface';
+import { ITeamUser, collectionName } from './teamUser.interface';
 import { teamUserUniqueNameValidator } from './teamUser.validator';
-
-export interface ITeamUser extends IBaseModel {
-  name: string;
-  password: string;
-}
 
 const teamUserSchema = new Schema({
   name: {
@@ -20,7 +15,6 @@ const teamUserSchema = new Schema({
   },
 });
 
-export const collectionName = 'TeamUser';
 const teamUserModel = model<ITeamUser>(collectionName, teamUserSchema);
 
 export default teamUserModel;

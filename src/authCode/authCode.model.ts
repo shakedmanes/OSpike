@@ -1,18 +1,12 @@
 import { Schema, model } from 'mongoose';
-import { IBaseModel } from '../generic/generic.interface';
-import { collectionName as ClientModelName, IClient } from '../client/client.model';
-import { collectionName as UserModelName, IUser } from '../user/user.model';
+import {
+  IClient,
+  collectionName as ClientModelName,
+} from '../client/client.interface';
+import { collectionName as UserModelName } from '../user/user.interface';
+import { IAuthCode, collectionName } from './authCode.interface';
 import { authCodeUniqueValueValidator } from './authCode.validator';
 import config from '../config';
-
-export interface IAuthCode extends IBaseModel {
-  value: string;
-  clientId: string | IClient; // Client ID or Client Model after population
-  userId: string | IUser; // User ID or User model after population
-  redirectUri: string;
-  scopes: [string];
-  expireAt: Date;
-}
 
 const authCodeSchema = new Schema({
   value: {
@@ -58,7 +52,6 @@ authCodeSchema.pre<IAuthCode>('validate', async function () {
   }
 });
 
-export const collectionName = 'AuthCode';
 const authCodeModel = model<IAuthCode>(collectionName, authCodeSchema);
 
 export default authCodeModel;
