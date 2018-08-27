@@ -7,6 +7,7 @@ import {
   clientUniqueSecretValidator,
   clientUniqueRedirectUrisValidator,
   clientUniqueHostUriValidator,
+  clientRegistrationTokenUniqueValidator,
 } from './client.validator';
 import { teamUserRefValidator } from '../teamUser/teamUser.validator';
 
@@ -50,6 +51,11 @@ const clientSchema = new Schema({
   scopes: {
     type: [String],
     default: [],
+  },
+  registrationToken: {
+    type: String,
+    required: true,
+    validate: clientRegistrationTokenUniqueValidator,
   },
 });
 

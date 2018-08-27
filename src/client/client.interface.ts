@@ -8,6 +8,7 @@ export interface IClient extends IBaseModel {
   hostUri: string;
   teamUserId: string;
   scopes: string[]; // Optional field for usage of client_credentials flow, may be empty
+  registrationToken: string;
 }
 
 export const collectionName = 'Client';

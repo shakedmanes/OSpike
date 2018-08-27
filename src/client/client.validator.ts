@@ -36,3 +36,9 @@ export const clientUniqueHostUriValidator = [
   uniqueValidator.bind({}, collectionName, 'hostUri'),
   'Unique Error - HostUri {VALUE} already exists',
 ];
+
+// Client registration token unique validator
+export const clientRegistrationTokenUniqueValidator = [
+  uniqueValidator.bind({}, collectionName, 'registrationToken'),
+  'Unique Error - registrationToken {VALUE} already exists',
+];
