@@ -38,7 +38,7 @@ passport.use(new LocalStrategy(
  */
 const verifyFunction =
 async (clientId: string, clientSecret: string, callback: (error: any, client?: any) => void) => {
-  const client = await clientModel.findOne({ clientId });
+  const client = await clientModel.findOne({ id: clientId });
 
   if (client && clientSecret === client.secret) {
     return callback(null, client);

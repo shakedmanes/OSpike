@@ -47,6 +47,10 @@ const clientSchema = new Schema({
     required: true,
     validate: teamUserRefValidator,
   },
+  scopes: {
+    type: [String],
+    default: [],
+  },
 });
 
 const clientModel = model<IClient>(collectionName, clientSchema);

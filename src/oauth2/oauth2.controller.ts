@@ -135,7 +135,7 @@ server.exchange(oauth2orize.exchange.code(
  * application issues an access token on behalf of the user who authorized the code.
  */
 server.exchange(oauth2orize.exchange.password(async (client, username, password, scope, done) => {
-  const clientDoc = await clientModel.findOne({ clientId: client.id });
+  const clientDoc = await clientModel.findOne({ id: client.id });
 
   if (clientDoc && clientDoc.secret === client.secret) {
 
@@ -180,15 +180,15 @@ server.exchange(oauth2orize.exchange.password(async (client, username, password,
  * application issues an access token on behalf of the client who authorized the code.
  */
 server.exchange(oauth2orize.exchange.clientCredentials(async (client, scope, done) => {
-  const clientDoc = await clientModel.findOne({ clientId: client.id });
-  if (clientDoc && clientDoc.secret === client.secret) {
+  const clientDoc = await clientModel.findOne({ id: client.id });
+  if (clientDoc && clientDoc.scopes.length > 0 && clientDoc.secret === client.secret) {
 
     try {
       const accessToken = await new accessTokenModel({
         value: accessTokenValueGenerator(),
         clientId: client._id,
         grantType: 'client_credentials',
-        scopes: scope,
+        scopes: clientDoc.scopes,
       }).save();
 
       // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
@@ -198,6 +198,12 @@ server.exchange(oauth2orize.exchange.clientCredentials(async (client, scope, don
       return done(err);
     }
   }
+
+  // Refactor this
+  if (clientDoc && clientDoc.scopes.length === 0) {
+    return done(new Error(`Client doesn't support client_credentials due incomplete scopes value`));
+  }
+
   return done(null, false);
 }));
 
@@ -222,10 +228,15 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
       (<IClient>(<IAccessToken>refreshTokenDoc.accessTokenId).clientId).id === client.id) {
     try {
       const accessToken = await new accessTokenModel({
-        ...(<IAccessToken>refreshTokenDoc.accessTokenId),
         value: accessTokenValueGenerator(),
+        clientId: (<IAccessToken>refreshTokenDoc.accessTokenId).clientId,
+        userId: (<IAccessToken>refreshTokenDoc.accessTokenId).userId,
+        scopes: (<IAccessToken>refreshTokenDoc.accessTokenId).scopes,
+        grantType: (<IAccessToken>refreshTokenDoc.accessTokenId).grantType,
       }).save();
 
+      // Need to delete previous access token and refresh token
+      await (<IAccessToken>refreshTokenDoc.accessTokenId).remove();
       await refreshTokenDoc.remove();
 
       const newRefreshToken = await new refreshTokenModel({

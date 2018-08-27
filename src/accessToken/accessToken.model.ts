@@ -20,7 +20,7 @@ const accessTokenSchema = new Schema({
   userId: {
     type: String,
     ref: UserModelName,
-    required: true,
+    // required: true,
     validate: userRefValidator,
   },
   value: {

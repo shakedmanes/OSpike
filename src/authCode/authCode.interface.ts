@@ -7,7 +7,7 @@ export interface IAuthCode extends IBaseModel {
   clientId: string | IClient; // Client ID or Client Model after population
   userId: string | IUser; // User ID or User model after population
   redirectUri: string;
-  scopes: [string];
+  scopes: string[];
   expireAt: Date;
 }
 
