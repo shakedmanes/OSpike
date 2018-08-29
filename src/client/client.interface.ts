@@ -1,3 +1,5 @@
+// client.interface
+
 import { IBaseModel } from '../generic/generic.interface';
 
 export interface IClient extends IBaseModel {
@@ -6,8 +8,8 @@ export interface IClient extends IBaseModel {
   secret: string;
   redirectUris: string[];
   hostUri: string;
-  teamUserId: string;
   scopes: string[]; // Optional field for usage of client_credentials flow, may be empty
+  registrationToken: string;
 }
 
 export const collectionName = 'Client';

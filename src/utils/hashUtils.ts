@@ -1,3 +1,5 @@
+// hashUtils
+
 import { hashSync, compareSync } from 'bcrypt';
 import config from '../config';
 

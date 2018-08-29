@@ -1,3 +1,5 @@
+// isEqual
+
 export const isScopeEquals = (firstArr: string[], secondArr: string[]) => {
   if (firstArr.length !== secondArr.length) {
     return false;

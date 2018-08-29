@@ -1,13 +1,17 @@
+// passport_config
+
 import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as BearerStrategy } from 'passport-http-bearer';
 import { Strategy as ClientPasswordStrategy } from 'passport-oauth2-client-password';
 import { BasicStrategy } from 'passport-http';
 
+import { ClientManagementAuthenticationStrategy } from './oauth2/management/management.auth';
 import userModel from './user/user.model';
 import { IUser } from './user/user.interface';
 import clientModel from './client/client.model';
 import accessTokenModel from './accessToken/accessToken.model';
+import config from './config';
 import { validatePasswordHash } from './utils/hashUtils';
 
 /**
@@ -91,6 +95,19 @@ passport.use(new BearerStrategy(async (token, callback) => {
   }
   return callback(null, false);
 }));
+
+/**
+ * Internal Client Management Authentication Strategys.
+ *
+ * Used for authenticate client manager(s).
+ * The second strategy also validate registration token
+ * when accessing restricted client management route.
+ */
+passport.use(new ClientManagementAuthenticationStrategy());
+passport.use(
+  config.CLIENT_MANAGER_PASSPORT_MANAGEMENT_STRATEGY,
+  new ClientManagementAuthenticationStrategy({ includeRegistrationToken: true }),
+);
 
 // Register serialialization and deserialization functions.
 //

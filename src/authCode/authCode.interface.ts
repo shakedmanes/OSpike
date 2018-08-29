@@ -1,3 +1,5 @@
+// authCode.interface
+
 import { IBaseModel } from '../generic/generic.interface';
 import { IClient } from '../client/client.interface';
 import { IUser } from '../user/user.interface';

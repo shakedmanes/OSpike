@@ -1,3 +1,5 @@
+// accessToken.model
+
 import { Schema, model } from 'mongoose';
 import { collectionName as ClientModelName } from '../client/client.interface';
 import { collectionName as UserModelName } from '../user/user.interface';
