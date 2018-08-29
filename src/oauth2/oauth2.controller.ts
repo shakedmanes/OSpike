@@ -1,3 +1,5 @@
+// oauth2.controller
+
 import * as oauth2orize from 'oauth2orize';
 import { ensureLoggedIn } from 'connect-ensure-login';
 import passport from 'passport';

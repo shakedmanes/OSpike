@@ -1,3 +1,5 @@
+// user.interface
+
 import { IBaseModel } from '../generic/generic.interface';
 
 export interface IUser extends IBaseModel {

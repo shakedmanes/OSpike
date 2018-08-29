@@ -1,3 +1,5 @@
+// user.model
+
 import { Schema, model } from 'mongoose';
 import { IUser, collectionName } from './user.interface';
 import { userUniqueEmailValidator } from './user.validator';

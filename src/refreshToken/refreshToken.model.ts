@@ -1,3 +1,5 @@
+// refreshToken.model
+
 import { Schema, model } from 'mongoose';
 import { IRefreshToken, collectionName } from './refreshToken.interface';
 import { refreshTokenUniqueValueValidator } from './refreshToken.validator';

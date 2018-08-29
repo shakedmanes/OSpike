@@ -1,3 +1,5 @@
+// config
+
 const config = {
   // Expiration Times
   AUTH_CODE_EXPIRATION_TIME: 3600, // 1 Minute
@@ -8,6 +10,15 @@ const config = {
   AUTH_CODE_LENGTH: 50,
   ACCESS_TOKEN_LENGTH: 100,
   REFRESH_TOKEN_LENGTH: 50,
+  CLIENT_ID_LENGTH: 40,
+  CLIENT_SECRET_LENGTH: 100,
+  REGISTRATION_TOKEN_LENGTH: 40,
+
+  // Client Manager
+  CLIENT_MANAGER_SCOPE: 'client_manager_special_scope',
+  CLIENT_MANAGER_AUTHORIZATION_HEADER: 'authorization-registrer',
+  CLIENT_MANAGER_PASSPORT_STRATEGY: 'client_manager_strategy', // Only client manager authentication
+  CLIENT_MANAGER_PASSPORT_MANAGEMENT_STRATEGY: 'client_manager_management_strategy',
 
   // Bcrypt
   BCRYPT_ROUNDS: 8,

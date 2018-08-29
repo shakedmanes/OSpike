@@ -1,5 +1,6 @@
+// client.model
+
 import { Schema, model } from 'mongoose';
-import { collectionName as TeamUserModelName } from '../teamUser/teamUser.interface';
 import { IClient, collectionName } from './client.interface';
 import {
   clientUniqueNameValidator,
@@ -7,8 +8,8 @@ import {
   clientUniqueSecretValidator,
   clientUniqueRedirectUrisValidator,
   clientUniqueHostUriValidator,
+  clientRegistrationTokenUniqueValidator,
 } from './client.validator';
-import { teamUserRefValidator } from '../teamUser/teamUser.validator';
 
 const clientSchema = new Schema({
   name: {
@@ -41,15 +42,14 @@ const clientSchema = new Schema({
     required: true,
     validate: clientUniqueHostUriValidator,
   },
-  teamUserId: {
-    type: String,
-    ref: TeamUserModelName,
-    required: true,
-    validate: teamUserRefValidator,
-  },
   scopes: {
     type: [String],
     default: [],
+  },
+  registrationToken: {
+    type: String,
+    required: true,
+    validate: clientRegistrationTokenUniqueValidator,
   },
 });
 

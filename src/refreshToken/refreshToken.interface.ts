@@ -1,3 +1,5 @@
+// refreshToken.interface
+
 import { IBaseModel } from '../generic/generic.interface';
 import { IAccessToken } from '../accessToken/accessToken.interface';
 

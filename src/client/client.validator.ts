@@ -1,3 +1,5 @@
+// client.validator
+
 import { refValidator, uniqueValidator } from '../generic/generic.validator';
 import { collectionName } from './client.interface';
 
@@ -35,4 +37,10 @@ export const clientUniqueRedirectUrisValidator = [
 export const clientUniqueHostUriValidator = [
   uniqueValidator.bind({}, collectionName, 'hostUri'),
   'Unique Error - HostUri {VALUE} already exists',
+];
+
+// Client registration token unique validator
+export const clientRegistrationTokenUniqueValidator = [
+  uniqueValidator.bind({}, collectionName, 'registrationToken'),
+  'Unique Error - registrationToken {VALUE} already exists',
 ];
