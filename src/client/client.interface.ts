@@ -6,7 +6,6 @@ export interface IClient extends IBaseModel {
   secret: string;
   redirectUris: string[];
   hostUri: string;
-  teamUserId: string;
   scopes: string[]; // Optional field for usage of client_credentials flow, may be empty
   registrationToken: string;
 }
