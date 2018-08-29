@@ -42,12 +42,12 @@ const clientSchema = new Schema({
     required: true,
     validate: clientUniqueHostUriValidator,
   },
-  teamUserId: {
-    type: String,
-    ref: TeamUserModelName,
-    required: true,
-    validate: teamUserRefValidator,
-  },
+  // teamUserId: {
+  //   type: String,
+  //   ref: TeamUserModelName,
+  //   required: true,
+  //   validate: teamUserRefValidator,
+  // },
   scopes: {
     type: [String],
     default: [],

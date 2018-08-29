@@ -14,7 +14,9 @@ const config = {
 
   // Client Manager
   CLIENT_MANAGER_SCOPE: 'client_manager_special_scope',
-  CLIENT_MANAGER_AUTHORIZATION_HEADER: 'Authorization-Registrer',
+  CLIENT_MANAGER_AUTHORIZATION_HEADER: 'authorization-registrer',
+  CLIENT_MANAGER_PASSPORT_STRATEGY: 'client_manager_strategy', // Only client manager authentication
+  CLIENT_MANAGER_PASSPORT_MANAGEMENT_STRATEGY: 'client_manager_management_strategy',
 
   // Bcrypt
   BCRYPT_ROUNDS: 8,

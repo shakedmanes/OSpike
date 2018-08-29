@@ -6,6 +6,7 @@ import {
   loginForm,
   loginMethod,
 } from './oauth2.controller';
+import { setManagementRoutes } from './management/management.routes';
 
 const router = Router();
 
@@ -17,5 +18,8 @@ router.post('/decision', decisionEndpoint);
 // Authentication routes
 router.get('/login', loginForm);
 router.post('/login', loginMethod);
+
+// Management routes
+setManagementRoutes(router);
 
 export default router;
