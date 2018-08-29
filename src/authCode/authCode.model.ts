@@ -1,3 +1,5 @@
+// authCode.model
+
 import { Schema, model } from 'mongoose';
 import {
   IClient,

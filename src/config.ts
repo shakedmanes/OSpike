@@ -1,3 +1,5 @@
+// config
+
 const config = {
   // Expiration Times
   AUTH_CODE_EXPIRATION_TIME: 3600, // 1 Minute

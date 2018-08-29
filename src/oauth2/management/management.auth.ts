@@ -1,3 +1,5 @@
+// management.auth
+
 import { Strategy } from 'passport-strategy';
 import { Request } from 'express';
 import clientModel from '../../client/client.model';

@@ -1,3 +1,5 @@
+// client.interface
+
 import { IBaseModel } from '../generic/generic.interface';
 
 export interface IClient extends IBaseModel {

@@ -1,3 +1,5 @@
+// management.interface
+
 import { IClient } from '../../client/client.interface';
 
 // Client information given by the user

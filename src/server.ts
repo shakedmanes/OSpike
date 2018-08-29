@@ -1,3 +1,5 @@
+// server
+
 import * as https from 'https';
 import { join as pathJoin } from 'path';
 import { readFileSync } from 'fs';
