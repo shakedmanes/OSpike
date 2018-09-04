@@ -3,7 +3,7 @@
 import * as bodyParser from 'body-parser';
 import * as dotenv from 'dotenv';
 import passport from 'passport';
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import morgan from 'morgan';
 import path from 'path';
 import './passport_config'; // Setting up all passport middlewares
