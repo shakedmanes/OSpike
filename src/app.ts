@@ -10,6 +10,7 @@ import './passport_config'; // Setting up all passport middlewares
 import './db_config'; // Create mongodb connections
 import { default as session } from 'express-session';
 import { default as oauthRouter } from './oauth2/oauth2.routes';
+import { errorHandler } from './utils/error.handler';
 import config from './config';
 
 // Gets all configuration properties
@@ -38,9 +39,12 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Routes
+/* Routes */
+
+// OAuth2 routes
 app.use('/oauth2', oauthRouter);
 
-// TODO: Add login route for authentication of the user
+// Error handler
+app.use(errorHandler);
 
 export default app;

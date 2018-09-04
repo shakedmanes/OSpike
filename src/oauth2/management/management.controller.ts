@@ -7,6 +7,8 @@ import {
 } from '../../utils/valueGenerator';
 import { IClientBasicInformation, IClientInformation } from './management.interface';
 import clientModel from '../../client/client.model';
+import { ClientNotFound } from './management.error';
+import { InvalidParameter } from '../../utils/error';
 
 // TODO: Add error handling
 // TODO: aggregate mongoose model properties
@@ -44,7 +46,7 @@ export class ManagementController {
       return clientDoc;
     }
 
-    throw new Error('Invalid client id or client registration token given');
+    throw new ClientNotFound('Invalid client id or client registration token given');
   }
 
   /**
@@ -64,7 +66,7 @@ export class ManagementController {
       return clientDoc;
     }
 
-    throw new Error('Invalid client id or client registration token given');
+    throw new InvalidParameter('Invalid client id or client registration token given');
   }
 
   /**
@@ -80,6 +82,6 @@ export class ManagementController {
       return !! await clientDoc.remove();
     }
 
-    throw new Error('Invalid client id or client registration token given');
+    throw new InvalidParameter('Invalid client id or client registration token given');
   }
 }
