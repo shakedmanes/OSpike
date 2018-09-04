@@ -1,3 +1,5 @@
+// error
+
 export class BaseError extends Error {
   status: number;
 

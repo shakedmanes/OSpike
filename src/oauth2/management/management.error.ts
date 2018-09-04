@@ -1,3 +1,5 @@
+// management.error
+
 import { NotFound } from '../../utils/error';
 
 export class ClientNotFound extends NotFound {
