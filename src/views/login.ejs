@@ -37,7 +37,11 @@
         <div class="input-fields">
           <input class="pure-input-1 input-fields" id="password" type="password" placeholder="Hint: misha"
                  name="password"/>
-        </div>
+        </div>        
+      </div>
+      <!-- Error section -->
+      <div>
+        <span><%= typeof errorMessage!='undefined' ? errorMessage : '' %></span>
       </div>
     </div>
     <!-- Bottom box with Sign in -->
