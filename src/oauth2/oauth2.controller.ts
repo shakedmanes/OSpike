@@ -354,7 +354,7 @@ export const loginForm = (req: Request, res: Response) => {
   if (req.session) {
     // User trying reach this route not via authorize route
     if (!req.session.returnTo ||
-        (req.session.returnTo && !req.session.returnTo.startsWith('/authorize?'))) {
+        (req.session.returnTo && !req.session.returnTo.startsWith('/oauth2/authorize?'))) {
       throw new Error('Authentication without OAuth2 flow is not permitted!');
     }
     errorMessage = req.session.messages ? req.session.messages[0] : null;
