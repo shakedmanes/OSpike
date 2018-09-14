@@ -29,7 +29,7 @@ export class ClientManagementAuthenticationStrategy
     this.includeRegistrationToken = options ? options.includeRegistrationToken || false : false;
   }
 
-  async authenticate(req: Request, options: IClientManagemementStrategyOptions): Promise<void> {
+  async authenticate(req: Request, options: any): Promise<void> {
 
     // Getting the client manager token and registration token if included
     const clientManagerToken = <string>req.headers[config.CLIENT_MANAGER_AUTHORIZATION_HEADER];
@@ -47,11 +47,10 @@ export class ClientManagementAuthenticationStrategy
     // Check if the client have special scope for managing clients and the requests
     // have been done from the correct host
     if (accessTokenDoc &&
-        accessTokenDoc.scopes.indexOf(config.CLIENT_MANAGER_SCOPE) > -1 &&
-        (<IClient>accessTokenDoc.clientId).hostUri === req.headers.host) {
+        accessTokenDoc.scopes.indexOf(config.CLIENT_MANAGER_SCOPE) > -1) {
 
       // If registration token is needed for authentication
-      if (options.includeRegistrationToken) {
+      if (this.includeRegistrationToken) {
 
         if (!registrationToken) {
           return this.fail({ message: 'Registration token parameter is missing' }, 400);
@@ -60,7 +59,7 @@ export class ClientManagementAuthenticationStrategy
         const clientDoc = await clientModel.findOne({ registrationToken });
 
         // Check if the registration token is exists and talking about the same client
-        if (clientDoc && clientDoc.id === req.body.clientId) {
+        if (clientDoc && clientDoc.id === req.params.clientId) {
           return this.success(<IClient>accessTokenDoc.clientId);
         }
 

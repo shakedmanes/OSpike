@@ -15,6 +15,9 @@ import { InvalidParameter } from '../../utils/error';
 
 export class ManagementController {
 
+  // Projection fields to exclude from client document
+  static readonly clientProjectionFields = { _id: 0, __v: 0 };
+
   /**
    * Registers client as relay party in authorization server
    * @param clientInformation - Client information given from the user
@@ -40,7 +43,8 @@ export class ManagementController {
    */
   static async readClient(clientId: string) {
 
-    const clientDoc = await clientModel.findOne({ id: clientId });
+    const clientDoc =
+      await clientModel.findOne({ id: clientId });
 
     if (clientDoc) {
       return clientDoc;
@@ -51,6 +55,7 @@ export class ManagementController {
 
   /**
    * Updates client information in authorization server
+   * @param clientId - Client id of the client to update
    * @param clientInformation - Client information to update
    * @returns The updated client information
    */
