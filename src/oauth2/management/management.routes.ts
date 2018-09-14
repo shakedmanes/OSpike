@@ -18,7 +18,7 @@ const authenticateMiddleware = passport.authenticate(
   { session: false, failWithError: true, failureMessage: true },
 );
 const authenticateManagementMiddleware = passport.authenticate(
-  config.CLIENT_MANAGER_PASSPORT_STRATEGY,
+  config.CLIENT_MANAGER_PASSPORT_MANAGEMENT_STRATEGY,
   { session: false, failWithError: true, failureMessage: true },
 );
 
@@ -43,52 +43,59 @@ export const setManagementRoutes = (router: Router) => {
 
   // Read client information endpoint
   router.get(
-    '/register',
+    '/register/:clientId',
     authenticateManagementMiddleware,
     Wrapper.wrapAsync(async (req: Request, res: Response) => {
 
       // If the request contains the client registration token and id
-      if (req.body.clientId) {
-        const clientInformation = await ManagementController.readClient(req.body.clientId);
+      if (req.params.clientId) {
+        const clientInformation = await ManagementController.readClient(req.params.clientId);
 
         return res.status(200).send(clientInformation);
       }
 
-      throw new InvalidParameter('Client id parameter is missing');
+      throw new InvalidParameter('Client id request parameter is missing');
     },
   ));
 
   // Update client information endpoint
   router.put(
-    '/register',
+    '/register/:clientId',
     authenticateManagementMiddleware,
     Wrapper.wrapAsync(async (req: Request, res: Response) => {
 
       // If the request contains the client registration token and id and update client information
-      if (req.body.clientId && req.body.clientInformation) {
+      if (req.params.clientId && req.body.clientInformation) {
         const clientInformation =
-          await ManagementController.updateClient(req.body.clientId, req.body.clientInformation);
+          await ManagementController.updateClient(req.params.clientId, req.body.clientInformation);
 
         return res.status(200).send(clientInformation);
       }
 
-      throw new InvalidParameter('Client id or client information parameter is missing');
+      throw new InvalidParameter(`Client id request parameter or
+                                  client information parameter is missing`);
     },
   ));
 
   // Delete client endpoint
   router.delete(
-    '/register',
+    '/register/:clientId',
     authenticateManagementMiddleware,
     Wrapper.wrapAsync(async (req: Request, res: Response) => {
 
       // If the request contains the client registration token and id
-      if (req.body.clientId) {
-        await ManagementController.deleteClient(req.body.clientId);
-        return res.status(200).send('Client deleted successfully');
+      if (req.params.clientId) {
+
+        // If the deletion succeed
+        if (await ManagementController.deleteClient(req.params.clientId)) {
+          return res.sendStatus(204);
+        }
+
+        // Somehow the deletion failed
+        return res.status(500).send('Internal Server Error');
       }
 
-      throw new InvalidParameter('Client id parameter is missing');
+      throw new InvalidParameter('Client id request parameter is missing');
     },
   ));
 };
