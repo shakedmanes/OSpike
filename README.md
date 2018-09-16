@@ -8,4 +8,8 @@ First usage:
     npm install
     npm run init
 
+And just run:
+
+    npm start
+
 The `init` script ensures you got all the configuration needed for the project.
