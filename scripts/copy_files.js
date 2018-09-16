@@ -18,10 +18,16 @@ function copyFolderRecursiveSync(source, target) {
   let files = [];
 
   // Check if folder needs to be created or integrated
-  let targetFolder = path.join(target, path.basename(source));  
-  if (!fs.existsSync(targetFolder)) {
-      fs.mkdirSync(targetFolder);
-  }
+  let targetFolder = path.join(target, path.basename(source));
+
+  // Create any subfolders needed if not already exists
+  targetFolder.split(path.sep).reduce((currentPath, folder) => {
+    currentPath += folder + path.sep;
+    if (!fs.existsSync(currentPath)) {
+        fs.mkdirSync(currentPath);
+    }
+    return currentPath;
+  }, '');
 
   // Copy
   if (fs.lstatSync(source).isDirectory()) {

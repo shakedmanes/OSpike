@@ -4,6 +4,8 @@
   "description": "An OAuth2 authorization server supporting OpenID Connect",
   "main": "app.js",
   "scripts": {
+    "init": "npm run build && npm run generate-certs && npm run generate-env",
+    "start": "npm run build && npm run serve",
     "start-watch": "npm run build && nodemon -e ts -w ./src -i ./src/**/*.spec.ts -x npm run watch-serve",
     "serve": "node dist/server.js",
     "watch-serve": "ts-node --inspect src/server.ts",
@@ -11,6 +13,8 @@
     "build-watch": "tsc -w",
     "tslint-config": "tslint -c tslint.json -p tsconfig.json",
     "copy-files": "node ./scripts/copy_files.js",
+    "generate-certs": "node ./scripts/generate_certs.js",
+    "generate-env": "node ./scripts/generate_env.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -75,6 +79,7 @@
     "@types/passport-strategy": "^0.2.35",
     "cpx": "^1.5.0",
     "nodemon": "^1.18.3",
+    "shelljs": "^0.8.2",
     "ts-node": "^7.0.0",
     "tslint": "^5.11.0",
     "tslint-config-airbnb": "^5.9.2",
