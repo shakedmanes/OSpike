@@ -53,6 +53,13 @@ const clientSchema = new Schema({
   },
 });
 
+clientSchema.methods.toJSON = function () {
+  const obj = this.toObject();
+  delete obj._id;
+  delete obj.__v;
+  return obj;
+};
+
 const clientModel = model<IClient>(collectionName, clientSchema);
 
 export default clientModel;

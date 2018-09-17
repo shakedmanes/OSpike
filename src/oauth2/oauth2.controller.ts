@@ -347,10 +347,31 @@ export const tokenEndpoint = [
 
 // Authentication endpoints (login endpoints)
 export const loginForm = (req: Request, res: Response) => {
-  res.render('login');
+
+  // Checks if there's any errors from previous authentication
+  // cause if the login failed this is the redirect uri.
+  let errorMessage = null;
+  if (req.session) {
+    // User trying reach this route not via authorize route
+    if (!req.session.returnTo ||
+        (req.session.returnTo && !req.session.returnTo.startsWith('/oauth2/authorize?'))) {
+      throw new Error('Authentication without OAuth2 flow is not permitted!');
+    }
+    errorMessage = req.session.messages ? req.session.messages[0] : null;
+  }
+
+  res.render('login', { errorMessage });
 };
+
 export const loginMethod = [
-  passport.authenticate('local', { successReturnToOrRedirect: '/', failureRedirect: loginUri }),
+  passport.authenticate(
+    'local',
+    {
+      successReturnToOrRedirect: '/',
+      failureRedirect: loginUri,
+      failureMessage: 'Incorrect email or password',
+    },
+  ),
 ];
 
 // Register serialialization and deserialization functions.
