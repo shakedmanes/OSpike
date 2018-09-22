@@ -7,6 +7,7 @@ import {
   decisionEndpoint,
   loginForm,
   loginMethod,
+  tokenIntrospectionEndpoint,
 } from './oauth2.controller';
 import { setManagementRoutes } from './management/management.routes';
 
@@ -15,6 +16,7 @@ const router = Router();
 // OAuth2 routes
 router.get('/authorize', authorizationEndpoint);
 router.post('/token', tokenEndpoint);
+router.post('/tokeninfo', tokenIntrospectionEndpoint);
 router.post('/decision', decisionEndpoint);
 
 // Authentication routes

@@ -90,9 +90,9 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
 server.exchange(oauth2orize.exchange.code(
   async (client, code, redirectUri, done) => {
 
-    let authCode = await authCodeModel.findOne({ value: code });
+    let authCode = await authCodeModel.findOne({ value: code }).populate('clientId');
     if (authCode &&
-        client.id === authCode.clientId &&
+        client.id === (<any>authCode.clientId).id &&
         redirectUri === authCode.redirectUri) {
 
       try {
@@ -343,6 +343,42 @@ export const tokenEndpoint = [
   passport.authenticate(['basic', 'oauth2-client-password'], { session: false }),
   server.token(),
   server.errorHandler(),
+];
+
+/**
+ * Token Introspection endpoint
+ *
+ * The token introspection endpoint used for getting information about given token
+ * to indicate the state of the token to the client (expiration time, audience, etc.)
+ * more information in @see https://tools.ietf.org/html/rfc7662
+ */
+export const tokenIntrospectionEndpoint = [
+  passport.authenticate(['basic', 'oauth2-client-password'], { session: false }),
+  async (req: Request, res: Response, next: NextFunction) => {
+    const token = req.body.token;
+
+    if (token) {
+      const accessToken =
+        await accessTokenModel.findOne({ value: token }).populate('userId clientId');
+
+      // If access token found and associated to the requester
+      if (accessToken &&
+          typeof accessToken.clientId === 'object' &&
+          (<any>accessToken.clientId).id === req.user.id) {
+        return res.status(200).send({
+          active: true,
+          clientId: (<any>accessToken.clientId).id,
+          scope: accessToken.scopes.join(' '),
+          exp: accessToken.expireAt,
+          ...(accessToken.userId && typeof accessToken.userId === 'object' ?
+             { username: accessToken.userId.name } : null),
+        });
+      }
+    }
+
+    // Any other possible cases should be handled like that for preventing token scanning attacks
+    return res.status(200).send({ active: false });
+  },
 ];
 
 // Authentication endpoints (login endpoints)
