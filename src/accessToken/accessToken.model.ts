@@ -49,6 +49,34 @@ const accessTokenSchema = new Schema({
 // Ensures there's only one token for user in specific client app
 accessTokenSchema.index({ clientId: 1, userId: 1 }, { unique: true });
 
+/**
+ * ############ FOR FUTURE VERSIONS ONLY ############
+ * We can decide for each client, how much he want the user to have a token.
+ * To do so, we need to modify some things:
+ *
+ * 1. Set specific TTL for deletion of access token document based on 'expireAt' field.
+ *    Uncomment the following code:
+ *
+ * accessTokenSchema.index(
+ *   { expireAt: 1 },
+ *   { expireAfterSeconds: config.ACCESS_TOKEN_EXPIRATION_TIME }
+ * );
+ *
+ * 2. At 'expireAt' field of the document, we should remove the 'expires' field (because we already
+ *    declared it the index above) and we set the 'expireAt' field for any time we want the document
+ *    to be deleted. (Maybe querying about the client document associate to that token and set the
+ *    time according to its configuration [Maybe field inside client documents, which indicates the
+ *    token TTL for each user])
+ *    BIG NOTE: We can specify range limit of the 'expireAt' field for not allowing user to create
+ *              infinite token. (setting expireAfterSeconds to minimum field value, and somehow
+ *              validate the 'expireAt' field to not exceed the current time plus maximum constant
+ *              time for token. [expireAt <= Date.now() + ACCESS_TOKEN_MAX_TIME])
+ *
+ * 3. Update the refresh token model to expire after the expiration time of the access token
+ *    associated to it and add constant time for it (The expiration time of the refresh token
+ *    could be set by the oauth2.controller file inside the authorization code exchange method)
+ */
+
 const accessTokenModel = model<IAccessToken>(collectionName, accessTokenSchema);
 
 export default accessTokenModel;
