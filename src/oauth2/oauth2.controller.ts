@@ -77,7 +77,7 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
       scopes: ares.scope,
       grantType: 'token',
     }).save();
-    return done(null, accessToken.value, { expires_in: accessToken.expireAt });
+    return done(null, accessToken.value, { expires_in: accessToken.expireAt.getTime() });
   } catch (err) {
     return done(err);
   }
@@ -113,7 +113,8 @@ server.exchange(oauth2orize.exchange.code(
           accessTokenId: accessToken._id,
         }).save();
 
-        done(null, accessToken.value, refreshToken.value, { expires_in: accessToken.expireAt });
+        const additionalParams = { expires_in: accessToken.expireAt.getTime() };
+        done(null, accessToken.value, refreshToken.value, additionalParams);
       } catch (err) {
         done(err);
       }
@@ -160,7 +161,7 @@ server.exchange(oauth2orize.exchange.password(async (client, username, password,
           accessTokenId: accessToken._id,
         }).save();
 
-        const additionalParams = { expires_in: accessToken.expireAt };
+        const additionalParams = { expires_in: accessToken.expireAt.getTime() };
         return done(null, accessToken.value, refreshToken.value, additionalParams);
       } catch (err) {
         return done(err);
@@ -195,7 +196,8 @@ server.exchange(oauth2orize.exchange.clientCredentials(async (client, scope, don
 
       // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
       // Refresh token SHOULD NOT be included in client credentials
-      return done(null, accessToken.value, undefined, { expires_in: accessToken.expireAt });
+      const additionalParams = { expires_in: accessToken.expireAt.getTime() };
+      return done(null, accessToken.value, undefined, additionalParams);
     } catch (err) {
       return done(err);
     }
@@ -248,7 +250,7 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
 
       // Should consider security-wise returning a new refresh token with the response.
       // Maybe in future releases refresh token will be omitted.
-      const additionalParams = { expires_in: accessToken.expireAt };
+      const additionalParams = { expires_in: accessToken.expireAt.getTime() };
       return done(null, accessToken.value, newRefreshToken.value, additionalParams);
     } catch (err) {
       return done(err);
