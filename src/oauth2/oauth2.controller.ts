@@ -18,6 +18,7 @@ import { IClient } from '../client/client.interface';
 import userModel from '../user/user.model';
 import { validatePasswordHash } from '../utils/hashUtils';
 import { isScopeEquals } from '../utils/isEqual';
+import config from '../config';
 
 // TODO: create specified config files with grants types
 // TODO: create generated session key for each of the requests
@@ -27,6 +28,14 @@ const server = oauth2orize.createServer();
 // Binds the route for login in ensure logged in middleware
 const loginUri = '/oauth2/login';
 const ensureLoggedInMiddleware = ensureLoggedIn.bind({}, loginUri);
+
+/**
+ * ############ FOR FUTURE VERSIONS ############
+ * According to what said in accessToken.model file, for updating the expires_in field
+ * which sent to indicates the user how much time the token is valid to, it should be
+ * taken from specific token time configuration field inside the client model.
+ * Also need to configure that in the token introspection route (returning exp field).
+ */
 
 /**
  * Grant authorization codes
@@ -77,7 +86,7 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
       scopes: ares.scope,
       grantType: 'token',
     }).save();
-    return done(null, accessToken.value, { expires_in: accessToken.expireAt });
+    return done(null, accessToken.value, { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME });
   } catch (err) {
     return done(err);
   }
@@ -113,7 +122,8 @@ server.exchange(oauth2orize.exchange.code(
           accessTokenId: accessToken._id,
         }).save();
 
-        done(null, accessToken.value, refreshToken.value, { expires_in: accessToken.expireAt });
+        const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+        done(null, accessToken.value, refreshToken.value, additionalParams);
       } catch (err) {
         done(err);
       }
@@ -160,7 +170,7 @@ server.exchange(oauth2orize.exchange.password(async (client, username, password,
           accessTokenId: accessToken._id,
         }).save();
 
-        const additionalParams = { expires_in: accessToken.expireAt };
+        const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
         return done(null, accessToken.value, refreshToken.value, additionalParams);
       } catch (err) {
         return done(err);
@@ -195,7 +205,8 @@ server.exchange(oauth2orize.exchange.clientCredentials(async (client, scope, don
 
       // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
       // Refresh token SHOULD NOT be included in client credentials
-      return done(null, accessToken.value, undefined, { expires_in: accessToken.expireAt });
+      const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+      return done(null, accessToken.value, undefined, additionalParams);
     } catch (err) {
       return done(err);
     }
@@ -248,7 +259,7 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
 
       // Should consider security-wise returning a new refresh token with the response.
       // Maybe in future releases refresh token will be omitted.
-      const additionalParams = { expires_in: accessToken.expireAt };
+      const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
       return done(null, accessToken.value, newRefreshToken.value, additionalParams);
     } catch (err) {
       return done(err);
@@ -369,7 +380,7 @@ export const tokenIntrospectionEndpoint = [
           active: true,
           clientId: (<any>accessToken.clientId).id,
           scope: accessToken.scopes.join(' '),
-          exp: accessToken.expireAt,
+          exp: accessToken.expireAt.getTime() + config.ACCESS_TOKEN_EXPIRATION_TIME * 1000,
           ...(accessToken.userId && typeof accessToken.userId === 'object' ?
              { username: accessToken.userId.name } : null),
         });
