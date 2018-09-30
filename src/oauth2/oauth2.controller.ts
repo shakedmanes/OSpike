@@ -147,38 +147,33 @@ server.exchange(oauth2orize.exchange.code(
  * application issues an access token on behalf of the user who authorized the code.
  */
 server.exchange(oauth2orize.exchange.password(async (client, username, password, scope, done) => {
-  const clientDoc = await clientModel.findOne({ id: client.id });
 
-  if (clientDoc && clientDoc.secret === client.secret) {
+  // In the user model schema we authenticate via email & password so username should be the email
+  const user = await userModel.findOne({ email: username }).lean();
 
-    // In the user model schema we authenticate via email & password so username should be the email
-    const user = await userModel.findOne({ email: username });
+  if (user && validatePasswordHash(password, user.password)) {
 
-    if (user && validatePasswordHash(password, user.password)) {
+    try {
+      const accessToken = await new accessTokenModel({
+        value: accessTokenValueGenerator(),
+        clientId: client._id,
+        userId: user._id,
+        scopes: scope,
+        grantType: 'password',
+      }).save();
 
-      try {
-        const accessToken = await new accessTokenModel({
-          value: accessTokenValueGenerator(),
-          clientId: client._id,
-          userId: user._id,
-          scopes: scope,
-          grantType: 'password',
-        }).save();
+      const refreshToken = await new refreshTokenModel({
+        value: refreshTokenValueGenerator(),
+        accessTokenId: accessToken._id,
+      }).save();
 
-        const refreshToken = await new refreshTokenModel({
-          value: refreshTokenValueGenerator(),
-          accessTokenId: accessToken._id,
-        }).save();
-
-        const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
-        return done(null, accessToken.value, refreshToken.value, additionalParams);
-      } catch (err) {
-        return done(err);
-      }
+      const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+      return done(null, accessToken.value, refreshToken.value, additionalParams);
+    } catch (err) {
+      return done(err);
     }
-
-    return done(null, false);
   }
+
   return done(null, false);
 }));
 
@@ -191,33 +186,29 @@ server.exchange(oauth2orize.exchange.password(async (client, username, password,
  * password/secret from the token request for verification. If these values are validated, the
  * application issues an access token on behalf of the client who authorized the code.
  */
-server.exchange(oauth2orize.exchange.clientCredentials(async (client, scope, done) => {
-  const clientDoc = await clientModel.findOne({ id: client.id });
-  if (clientDoc && clientDoc.scopes.length > 0 && clientDoc.secret === client.secret) {
+server.exchange(oauth2orize.exchange.clientCredentials(async (client: IClient, scope, done) => {
 
-    try {
-      const accessToken = await new accessTokenModel({
-        value: accessTokenValueGenerator(),
-        clientId: client._id,
-        grantType: 'client_credentials',
-        scopes: clientDoc.scopes,
-      }).save();
-
-      // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
-      // Refresh token SHOULD NOT be included in client credentials
-      const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
-      return done(null, accessToken.value, undefined, additionalParams);
-    } catch (err) {
-      return done(err);
-    }
-  }
-
-  // Refactor this
-  if (clientDoc && clientDoc.scopes.length === 0) {
+  // If the client doesn't have actually scopes to grant authorization on
+  if (client.scopes.length === 0) {
     return done(new Error(`Client doesn't support client_credentials due incomplete scopes value`));
   }
 
-  return done(null, false);
+  try {
+    const accessToken = await new accessTokenModel({
+      value: accessTokenValueGenerator(),
+      clientId: client._id,
+      grantType: 'client_credentials',
+      scopes: client.scopes,
+    }).save();
+
+    // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
+    // Refresh token SHOULD NOT be included in client credentials
+    const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+    return done(null, accessToken.value, undefined, additionalParams);
+
+  } catch (err) {
+    return done(err);
+  }
 }));
 
 /**
@@ -279,7 +270,7 @@ export const authorizationEndpoint = [
       // TODO: Check if scope and areq includes and enforce them
       // tslint:disable-next-line:max-line-length
       // (add scope and areq to function params) as https://github.com/FrankHassanabad/Oauth2orizeRecipes/blob/master/authorization-server/oauth2.js#L157
-      const client = await clientModel.findOne({ id: clientId });
+      const client = await clientModel.findOne({ id: clientId }).lean();
       if (client && client.redirectUris.indexOf(redirectUri) > -1) {
 
         // NEED TO VALIDATE CLIENT SECRET SOMEHOW
@@ -294,7 +285,7 @@ export const authorizationEndpoint = [
     async (client, user, scope, type, areq, done) => {
       // Checking if token already genereated for the user in the client
       const accessToken =
-      await accessTokenModel.findOne({ clientId: client._id, userId: user._id });
+      await accessTokenModel.findOne({ clientId: client._id, userId: user._id }).lean();
 
       // User already have token in the client with requested scopes
       // TODO: Consider if the client requests for other scope, ask the user if he wants
@@ -370,7 +361,7 @@ export const tokenIntrospectionEndpoint = [
 
     if (token) {
       const accessToken =
-        await accessTokenModel.findOne({ value: token }).populate('userId clientId');
+        await accessTokenModel.findOne({ value: token }).populate('userId clientId').lean();
 
       // If access token found and associated to the requester
       if (accessToken &&
@@ -439,5 +430,5 @@ server.serializeClient((client, callback) => {
 });
 
 server.deserializeClient(async (id, callback) => {
-  callback(null, await clientModel.findOne({ id }));
+  callback(null, await clientModel.findOne({ id }).lean());
 });

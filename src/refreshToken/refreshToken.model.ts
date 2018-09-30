@@ -2,7 +2,6 @@
 
 import { Schema, model } from 'mongoose';
 import { IRefreshToken, collectionName } from './refreshToken.interface';
-import { refreshTokenUniqueValueValidator } from './refreshToken.validator';
 import { accessTokenRefValidator } from '../accessToken/accessToken.validator';
 import {
   IAccessToken,
@@ -17,7 +16,6 @@ const refreshTokenSchema = new Schema({
     type: String,
     unique: true,
     required: true,
-    validate: refreshTokenUniqueValueValidator,
   },
   accessTokenId: {
     type: String,

@@ -2,7 +2,6 @@
 
 import { Schema, model } from 'mongoose';
 import { IUser, collectionName } from './user.interface';
-import { userUniqueEmailValidator } from './user.validator';
 import { generatePasswordHash } from '../utils/hashUtils';
 
 const userSchema = new Schema({
@@ -14,7 +13,6 @@ const userSchema = new Schema({
     type: String,
     unique: true,
     required: true,
-    validate: userUniqueEmailValidator,
   },
   password: {
     type: String,

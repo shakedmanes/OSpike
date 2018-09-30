@@ -44,7 +44,7 @@ export class ManagementController {
   static async readClient(clientId: string) {
 
     const clientDoc =
-      await clientModel.findOne({ id: clientId });
+      await clientModel.findOne({ id: clientId }).lean();
 
     if (clientDoc) {
       return clientDoc;
@@ -65,7 +65,7 @@ export class ManagementController {
       { id: clientId },
       { $set: clientInformation },
       { new: true, runValidators: true },
-    );
+    ).lean();
 
     if (clientDoc) {
       return clientDoc;
@@ -81,10 +81,10 @@ export class ManagementController {
    */
   static async deleteClient(clientId: string) {
 
-    const clientDoc = await clientModel.findOne({ id: clientId });
+    const clientDoc = await clientModel.findOneAndRemove({ id: clientId });
 
     if (clientDoc) {
-      return !! await clientDoc.remove();
+      return true;
     }
 
     throw new InvalidParameter('Invalid client id or client registration token given');
