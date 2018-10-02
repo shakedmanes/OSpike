@@ -344,7 +344,6 @@ export const decisionEndpoint = [
 export const tokenEndpoint = [
   passport.authenticate(['basic', 'oauth2-client-password'], { session: false }),
   server.token(),
-  server.errorHandler(),
 ];
 
 /**
