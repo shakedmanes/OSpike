@@ -42,7 +42,7 @@ export class ClientManagementAuthenticationStrategy
 
     // Checking the client manager token
     const accessTokenDoc =
-      await accessTokenModel.findOne({ value: clientManagerToken }).populate('clientId');
+      await accessTokenModel.findOne({ value: clientManagerToken }).populate('clientId').lean();
 
     // Check if the client have special scope for managing clients and the requests
     // have been done from the correct host
@@ -56,7 +56,7 @@ export class ClientManagementAuthenticationStrategy
           return this.fail({ message: 'Registration token parameter is missing' }, 400);
         }
 
-        const clientDoc = await clientModel.findOne({ registrationToken });
+        const clientDoc = await clientModel.findOne({ registrationToken }).lean();
 
         // Check if the registration token is exists and talking about the same client
         if (clientDoc && clientDoc.id === req.params.clientId) {

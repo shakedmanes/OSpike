@@ -4,7 +4,6 @@ import { Schema, model } from 'mongoose';
 import { collectionName as ClientModelName } from '../client/client.interface';
 import { collectionName as UserModelName } from '../user/user.interface';
 import { IAccessToken, collectionName } from './accessToken.interface';
-import { accessTokenUniqueValueValidator } from './accessToken.validator';
 import { clientRefValidator } from '../client/client.validator';
 import { userRefValidator } from '../user/user.validator';
 import config from '../config';
@@ -29,7 +28,6 @@ const accessTokenSchema = new Schema({
     type: String,
     unique: true,
     required: true,
-    validate: accessTokenUniqueValueValidator,
   },
   scopes: {
     type: [String],
