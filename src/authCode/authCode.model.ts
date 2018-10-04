@@ -7,7 +7,6 @@ import {
 } from '../client/client.interface';
 import { collectionName as UserModelName } from '../user/user.interface';
 import { IAuthCode, collectionName } from './authCode.interface';
-import { authCodeUniqueValueValidator } from './authCode.validator';
 import config from '../config';
 
 const authCodeSchema = new Schema({
@@ -15,7 +14,6 @@ const authCodeSchema = new Schema({
     type: String,
     unique: true,
     required: true,
-    validate: authCodeUniqueValueValidator,
   },
   clientId: {
     type: String,

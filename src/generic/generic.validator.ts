@@ -9,7 +9,7 @@ import { model as getModel } from 'mongoose';
  * @param idValue - the value of the unique id field
  */
 export const refValidator = async (modelName: string, idField: string, idValue: any) => {
-  const modelExist = await getModel(modelName).findOne({ [idField]: idValue });
+  const modelExist = await getModel(modelName).findOne({ [idField]: idValue }).lean();
   return !!modelExist;
 };
 

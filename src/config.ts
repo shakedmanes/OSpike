@@ -1,10 +1,10 @@
 // config
 
 const config = {
-  // Expiration Times
-  AUTH_CODE_EXPIRATION_TIME: 3600, // 1 Minute
-  ACCESS_TOKEN_EXPIRATION_TIME: 7200, // 2 Minutes
-  REFRESH_TOKEN_EXPIRATION_TIME: 7200, // 2 Minutes
+  // Expiration Times - format in seconds for mongoose TTL expiration field
+  AUTH_CODE_EXPIRATION_TIME: 120, // 2 Minutes
+  ACCESS_TOKEN_EXPIRATION_TIME: 180, // 3 Minutes
+  REFRESH_TOKEN_EXPIRATION_TIME: 180, // 3 Minutes
 
   // Lengths
   AUTH_CODE_LENGTH: 50,

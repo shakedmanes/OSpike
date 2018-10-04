@@ -18,6 +18,7 @@ import { IClient } from '../client/client.interface';
 import userModel from '../user/user.model';
 import { validatePasswordHash } from '../utils/hashUtils';
 import { isScopeEquals } from '../utils/isEqual';
+import config from '../config';
 
 // TODO: create specified config files with grants types
 // TODO: create generated session key for each of the requests
@@ -27,6 +28,14 @@ const server = oauth2orize.createServer();
 // Binds the route for login in ensure logged in middleware
 const loginUri = '/oauth2/login';
 const ensureLoggedInMiddleware = ensureLoggedIn.bind({}, loginUri);
+
+/**
+ * ############ FOR FUTURE VERSIONS ############
+ * According to what said in accessToken.model file, for updating the expires_in field
+ * which sent to indicates the user how much time the token is valid to, it should be
+ * taken from specific token time configuration field inside the client model.
+ * Also need to configure that in the token introspection route (returning exp field).
+ */
 
 /**
  * Grant authorization codes
@@ -77,7 +86,7 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
       scopes: ares.scope,
       grantType: 'token',
     }).save();
-    return done(null, accessToken.value, { expires_in: accessToken.expireAt });
+    return done(null, accessToken.value, { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME });
   } catch (err) {
     return done(err);
   }
@@ -90,9 +99,9 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
 server.exchange(oauth2orize.exchange.code(
   async (client, code, redirectUri, done) => {
 
-    let authCode = await authCodeModel.findOne({ value: code });
+    let authCode = await authCodeModel.findOne({ value: code }).populate('clientId');
     if (authCode &&
-        client.id === authCode.clientId &&
+        client.id === (<any>authCode.clientId).id &&
         redirectUri === authCode.redirectUri) {
 
       try {
@@ -113,7 +122,8 @@ server.exchange(oauth2orize.exchange.code(
           accessTokenId: accessToken._id,
         }).save();
 
-        done(null, accessToken.value, refreshToken.value, { expires_in: accessToken.expireAt });
+        const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+        done(null, accessToken.value, refreshToken.value, additionalParams);
       } catch (err) {
         done(err);
       }
@@ -137,38 +147,33 @@ server.exchange(oauth2orize.exchange.code(
  * application issues an access token on behalf of the user who authorized the code.
  */
 server.exchange(oauth2orize.exchange.password(async (client, username, password, scope, done) => {
-  const clientDoc = await clientModel.findOne({ id: client.id });
 
-  if (clientDoc && clientDoc.secret === client.secret) {
+  // In the user model schema we authenticate via email & password so username should be the email
+  const user = await userModel.findOne({ email: username }).lean();
 
-    // In the user model schema we authenticate via email & password so username should be the email
-    const user = await userModel.findOne({ email: username });
+  if (user && validatePasswordHash(password, user.password)) {
 
-    if (user && validatePasswordHash(password, user.password)) {
+    try {
+      const accessToken = await new accessTokenModel({
+        value: accessTokenValueGenerator(),
+        clientId: client._id,
+        userId: user._id,
+        scopes: scope,
+        grantType: 'password',
+      }).save();
 
-      try {
-        const accessToken = await new accessTokenModel({
-          value: accessTokenValueGenerator(),
-          clientId: client._id,
-          userId: user._id,
-          scopes: scope,
-          grantType: 'password',
-        }).save();
+      const refreshToken = await new refreshTokenModel({
+        value: refreshTokenValueGenerator(),
+        accessTokenId: accessToken._id,
+      }).save();
 
-        const refreshToken = await new refreshTokenModel({
-          value: refreshTokenValueGenerator(),
-          accessTokenId: accessToken._id,
-        }).save();
-
-        const additionalParams = { expires_in: accessToken.expireAt };
-        return done(null, accessToken.value, refreshToken.value, additionalParams);
-      } catch (err) {
-        return done(err);
-      }
+      const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+      return done(null, accessToken.value, refreshToken.value, additionalParams);
+    } catch (err) {
+      return done(err);
     }
-
-    return done(null, false);
   }
+
   return done(null, false);
 }));
 
@@ -181,32 +186,29 @@ server.exchange(oauth2orize.exchange.password(async (client, username, password,
  * password/secret from the token request for verification. If these values are validated, the
  * application issues an access token on behalf of the client who authorized the code.
  */
-server.exchange(oauth2orize.exchange.clientCredentials(async (client, scope, done) => {
-  const clientDoc = await clientModel.findOne({ id: client.id });
-  if (clientDoc && clientDoc.scopes.length > 0 && clientDoc.secret === client.secret) {
+server.exchange(oauth2orize.exchange.clientCredentials(async (client: IClient, scope, done) => {
 
-    try {
-      const accessToken = await new accessTokenModel({
-        value: accessTokenValueGenerator(),
-        clientId: client._id,
-        grantType: 'client_credentials',
-        scopes: clientDoc.scopes,
-      }).save();
-
-      // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
-      // Refresh token SHOULD NOT be included in client credentials
-      return done(null, accessToken.value, undefined, { expires_in: accessToken.expireAt });
-    } catch (err) {
-      return done(err);
-    }
-  }
-
-  // Refactor this
-  if (clientDoc && clientDoc.scopes.length === 0) {
+  // If the client doesn't have actually scopes to grant authorization on
+  if (client.scopes.length === 0) {
     return done(new Error(`Client doesn't support client_credentials due incomplete scopes value`));
   }
 
-  return done(null, false);
+  try {
+    const accessToken = await new accessTokenModel({
+      value: accessTokenValueGenerator(),
+      clientId: client._id,
+      grantType: 'client_credentials',
+      scopes: client.scopes,
+    }).save();
+
+    // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
+    // Refresh token SHOULD NOT be included in client credentials
+    const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+    return done(null, accessToken.value, undefined, additionalParams);
+
+  } catch (err) {
+    return done(err);
+  }
 }));
 
 /**
@@ -248,7 +250,7 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
 
       // Should consider security-wise returning a new refresh token with the response.
       // Maybe in future releases refresh token will be omitted.
-      const additionalParams = { expires_in: accessToken.expireAt };
+      const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
       return done(null, accessToken.value, newRefreshToken.value, additionalParams);
     } catch (err) {
       return done(err);
@@ -268,7 +270,7 @@ export const authorizationEndpoint = [
       // TODO: Check if scope and areq includes and enforce them
       // tslint:disable-next-line:max-line-length
       // (add scope and areq to function params) as https://github.com/FrankHassanabad/Oauth2orizeRecipes/blob/master/authorization-server/oauth2.js#L157
-      const client = await clientModel.findOne({ id: clientId });
+      const client = await clientModel.findOne({ id: clientId }).lean();
       if (client && client.redirectUris.indexOf(redirectUri) > -1) {
 
         // NEED TO VALIDATE CLIENT SECRET SOMEHOW
@@ -283,7 +285,7 @@ export const authorizationEndpoint = [
     async (client, user, scope, type, areq, done) => {
       // Checking if token already genereated for the user in the client
       const accessToken =
-      await accessTokenModel.findOne({ clientId: client._id, userId: user._id });
+      await accessTokenModel.findOne({ clientId: client._id, userId: user._id }).lean();
 
       // User already have token in the client with requested scopes
       // TODO: Consider if the client requests for other scope, ask the user if he wants
@@ -342,7 +344,42 @@ export const decisionEndpoint = [
 export const tokenEndpoint = [
   passport.authenticate(['basic', 'oauth2-client-password'], { session: false }),
   server.token(),
-  server.errorHandler(),
+];
+
+/**
+ * Token Introspection endpoint
+ *
+ * The token introspection endpoint used for getting information about given token
+ * to indicate the state of the token to the client (expiration time, audience, etc.)
+ * more information in @see https://tools.ietf.org/html/rfc7662
+ */
+export const tokenIntrospectionEndpoint = [
+  passport.authenticate(['basic', 'oauth2-client-password'], { session: false }),
+  async (req: Request, res: Response, next: NextFunction) => {
+    const token = req.body.token;
+
+    if (token) {
+      const accessToken =
+        await accessTokenModel.findOne({ value: token }).populate('userId clientId').lean();
+
+      // If access token found and associated to the requester
+      if (accessToken &&
+          typeof accessToken.clientId === 'object' &&
+          (<any>accessToken.clientId).id === req.user.id) {
+        return res.status(200).send({
+          active: true,
+          clientId: (<any>accessToken.clientId).id,
+          scope: accessToken.scopes.join(' '),
+          exp: accessToken.expireAt.getTime() + config.ACCESS_TOKEN_EXPIRATION_TIME * 1000,
+          ...(accessToken.userId && typeof accessToken.userId === 'object' ?
+             { username: accessToken.userId.name } : null),
+        });
+      }
+    }
+
+    // Any other possible cases should be handled like that for preventing token scanning attacks
+    return res.status(200).send({ active: false });
+  },
 ];
 
 // Authentication endpoints (login endpoints)
@@ -392,5 +429,5 @@ server.serializeClient((client, callback) => {
 });
 
 server.deserializeClient(async (id, callback) => {
-  callback(null, await clientModel.findOne({ id }));
+  callback(null, await clientModel.findOne({ id }).lean());
 });
