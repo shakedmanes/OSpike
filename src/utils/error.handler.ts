@@ -10,7 +10,7 @@ export function errorHandler(error: any, req: Request, res: Response, next: Next
   // Authentication error caused by passport strategy
   if (error.name === 'AuthenticationError') {
     return res.status(error.status).send({
-      message: req.session ? req.session.messages[0] : error.name,
+      message: req.session ? req.session.messages[req.session.messages.length - 1] : error.name,
     });
   }
 

@@ -43,6 +43,15 @@ const authCodeSchema = new Schema({
 // Ensures there's only one code for client and user combination
 authCodeSchema.index({ clientId: 1, userId: 1 }, { unique: true });
 
+// Construct better error handling for errors from mongo server
+authCodeSchema.post('save', (err, doc, next) => {
+  if (err.name === 'MongoError' && err.code === 11000) {
+    err.message = `There's already authorization code for the client and the user.`;
+  }
+
+  next(err);
+});
+
 // TODO: Implement proper exception handling for this throwed error
 // Checking if redirectUri specified is in the redirect uris of the client model
 authCodeSchema.pre<IAuthCode>('validate', async function () {
