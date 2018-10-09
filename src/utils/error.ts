@@ -32,6 +32,12 @@ export class InvalidParameter extends BaseError {
   }
 }
 
+export class BadRequest extends BaseError {
+  constructor(message?: string) {
+    super(message || 'Bad Request', 400);
+  }
+}
+
 export class InternalServerError extends BaseError {
   constructor(message?: string) {
     super(message || 'Internal Server Error', 500);

@@ -19,6 +19,7 @@ import userModel from '../user/user.model';
 import { validatePasswordHash } from '../utils/hashUtils';
 import { isScopeEquals } from '../utils/isEqual';
 import config from '../config';
+import { BadRequest } from '../utils/error';
 
 // TODO: create specified config files with grants types
 // TODO: create generated session key for each of the requests
@@ -49,16 +50,21 @@ const ensureLoggedInMiddleware = ensureLoggedIn.bind({}, loginUri);
 server.grant(oauth2orize.grant.code(
   async (client, redirectUri, user, ares, done) => {
 
-    const authCode = new authCodeModel({
-      redirectUri,
-      value: authCodeValueGenerator(),
-      clientId: client._id,
-      userId: user._id,
-      scopes: ares.scope,
-    });
+    // Check if there's token already for the user and client, therfore avoid generating code
+    const token = await accessTokenModel.findOne({ clientId: client._id, userId: user._id });
+    if (token) {
+      return done(new BadRequest(`There's already access token for that client and user.`));
+    }
 
     try {
-      await authCode.save();
+      const authCode = await new authCodeModel({
+        redirectUri,
+        value: authCodeValueGenerator(),
+        clientId: client._id,
+        userId: user._id,
+        scopes: ares.scope,
+      }).save();
+
       return done(null, authCode.value);
     } catch (err) {
       return done(err);
@@ -86,6 +92,7 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
       scopes: ares.scope,
       grantType: 'token',
     }).save();
+
     return done(null, accessToken.value, { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME });
   } catch (err) {
     return done(err);
@@ -101,7 +108,7 @@ server.exchange(oauth2orize.exchange.code(
 
     let authCode = await authCodeModel.findOne({ value: code }).populate('clientId');
     if (authCode &&
-        client.id === (<any>authCode.clientId).id &&
+        client.id === (<IClient>authCode.clientId).id &&
         redirectUri === authCode.redirectUri) {
 
       try {
@@ -110,7 +117,7 @@ server.exchange(oauth2orize.exchange.code(
         // Generate fresh access token
         const accessToken = await new accessTokenModel({
           value: accessTokenValueGenerator(),
-          clientId: authCode.clientId,
+          clientId: (<IClient>authCode.clientId)._id,
           userId: authCode.userId,
           scopes: authCode.scopes,
           grantType: 'code',
@@ -190,7 +197,8 @@ server.exchange(oauth2orize.exchange.clientCredentials(async (client: IClient, s
 
   // If the client doesn't have actually scopes to grant authorization on
   if (client.scopes.length === 0) {
-    return done(new Error(`Client doesn't support client_credentials due incomplete scopes value`));
+    const errorMessage = `Client doesn't support client_credentials due incomplete scopes value`;
+    return (done(new BadRequest(errorMessage)));
   }
 
   try {
@@ -365,10 +373,10 @@ export const tokenIntrospectionEndpoint = [
       // If access token found and associated to the requester
       if (accessToken &&
           typeof accessToken.clientId === 'object' &&
-          (<any>accessToken.clientId).id === req.user.id) {
+          (<IAccessToken>accessToken.clientId).id === req.user.id) {
         return res.status(200).send({
           active: true,
-          clientId: (<any>accessToken.clientId).id,
+          clientId: (<IAccessToken>accessToken.clientId).id,
           scope: accessToken.scopes.join(' '),
           exp: accessToken.expireAt.getTime() + config.ACCESS_TOKEN_EXPIRATION_TIME * 1000,
           ...(accessToken.userId && typeof accessToken.userId === 'object' ?
@@ -392,7 +400,7 @@ export const loginForm = (req: Request, res: Response) => {
     // User trying reach this route not via authorize route
     if (!req.session.returnTo ||
         (req.session.returnTo && !req.session.returnTo.startsWith('/oauth2/authorize?'))) {
-      throw new Error('Authentication without OAuth2 flow is not permitted!');
+      throw new BadRequest('Authentication without OAuth2 flow is not permitted!');
     }
     errorMessage = req.session.messages ? req.session.messages[0] : null;
   }

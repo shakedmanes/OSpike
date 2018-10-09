@@ -47,6 +47,15 @@ const accessTokenSchema = new Schema({
 // Ensures there's only one token for user in specific client app
 accessTokenSchema.index({ clientId: 1, userId: 1 }, { unique: true });
 
+// Construct better error handling for errors from mongo server
+accessTokenSchema.post('save', (err, doc, next) => {
+  if (err.name === 'MongoError' && err.code === 11000) {
+    err.message = `There's already token for the client and the user.`;
+  }
+
+  next(err);
+});
+
 /**
  * ############ FOR FUTURE VERSIONS ONLY ############
  * We can decide for each client, how much he want the user to have a token.
