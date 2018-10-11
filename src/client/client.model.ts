@@ -2,6 +2,7 @@
 
 import { Schema, model } from 'mongoose';
 import { IClient, collectionName } from './client.interface';
+import { hostUriRegexValidator, redirectUrisValidator } from './client.validator';
 
 const clientSchema = new Schema({
   name: {
@@ -23,11 +24,13 @@ const clientSchema = new Schema({
     type: [String],
     unique: true,
     required: true,
+    validate: redirectUrisValidator,
   },
   hostUri: {
     type: String,
     unique: true,
     required: true,
+    validate: hostUriRegexValidator,
   },
   scopes: {
     type: [String],
