@@ -28,6 +28,11 @@ const config = {
 
   // MongoDB Url
   mongoUrl: 'mongodb://admin:Aa123456@ds125352.mlab.com:25352/authorization_server',
+
+  // SSL Configuration
+  privateKeyPath: 'certs/privatekey.pem',
+  publicKeyPath: 'certs/publickey.pem',
+  certificatePath: 'certs/certificate.pem',
 };
 
 export default config;
