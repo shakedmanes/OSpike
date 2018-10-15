@@ -34,9 +34,10 @@ import { join as pathJoin } from 'path';
  *
  */
 export interface JWTPayload {
-  iss: string; // Issuer of the jwt (who issued that JWT [authorization server])
-  aud: string; // Audience of the jwt (receipent that the JWT intended for)
-  sub: string; // The subject of the jwt (the user/client the JWT generated for)
+  iss: string; // Issuer of the JWT (who issued that JWT [authorization server])
+  aud: string; // Audience of the JWT (receipent that the JWT intended for)
+  sub: string; // The subject of the JWT (the user/client the JWT generated for)
+  scope: string[]; // The scopes for the JWT
   iat: number; // Issued at time of the token in milliseconds
   exp: number; // Expiration time of the token in milliseconds
 }
