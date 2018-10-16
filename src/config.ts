@@ -33,6 +33,9 @@ const config = {
   privateKeyPath: 'certs/privatekey.pem',
   publicKeyPath: 'certs/publickey.pem',
   certificatePath: 'certs/certificate.pem',
+
+  // JWT Configuration
+  issuerHostUri: 'https://localhost:1337',
 };
 
 export default config;

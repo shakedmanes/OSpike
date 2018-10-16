@@ -33,20 +33,33 @@ import { join as pathJoin } from 'path';
  * generated for him.
  *
  */
-export interface JWTPayload {
+export interface JWTPayload extends JWTPayloadData {
   iss: string; // Issuer of the JWT (who issued that JWT [authorization server])
+  iat: number; // Issued at time of the token in milliseconds
+  exp: number; // Expiration time of the token in milliseconds
+}
+
+export interface JWTPayloadData {
   aud: string; // Audience of the JWT (receipent that the JWT intended for)
   sub: string; // The subject of the JWT (the user/client the JWT generated for)
   scope: string[]; // The scopes for the JWT
-  iat: number; // Issued at time of the token in milliseconds
-  exp: number; // Expiration time of the token in milliseconds
+
 }
 
 export class OAuth2Utils {
 
   private static readonly privatKey = fs.readFileSync(pathJoin(__dirname, config.privateKeyPath));
+  private static readonly publicKey = fs.readFileSync(pathJoin(__dirname, config.publicKeyPath));
 
-  static createJWTAccessToken(payload: JWTPayload) {
-    return jwt.sign(payload, OAuth2Utils.privatKey);
+  static createJWTAccessToken(payload: JWTPayloadData) {
+    return jwt.sign(
+      { ...payload, iat: Date.now() },
+      OAuth2Utils.privatKey,
+      { issuer: config.issuerHostUri, expiresIn: config.ACCESS_TOKEN_EXPIRATION_TIME },
+    );
+  }
+
+  static stripJWTAccessToken(accessToken: string) {
+    return jwt.verify(accessToken, OAuth2Utils.publicKey);
   }
 }

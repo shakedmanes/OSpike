@@ -9,6 +9,7 @@ import {
   accessTokenValueGenerator,
   refreshTokenValueGenerator,
 } from '../utils/valueGenerator';
+import { OAuth2Utils } from './oauth2.utils';
 import authCodeModel from '../authCode/authCode.model';
 import accessTokenModel from '../accessToken/accessToken.model';
 import { IAccessToken } from '../accessToken/accessToken.interface';
@@ -86,7 +87,11 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
 
   try {
     const accessToken = await new accessTokenModel({
-      value: accessTokenValueGenerator(),
+      value: OAuth2Utils.createJWTAccessToken({
+        aud: client.id,
+        sub: user._id,
+        scope: ares.scope,
+      }),
       clientId: client._id,
       userId: user._id,
       scopes: ares.scope,
@@ -116,7 +121,11 @@ server.exchange(oauth2orize.exchange.code(
 
         // Generate fresh access token
         const accessToken = await new accessTokenModel({
-          value: accessTokenValueGenerator(),
+          value: OAuth2Utils.createJWTAccessToken({
+            aud: client._id,
+            sub: authCode.userId as string,
+            scope: authCode.scopes,
+          }),
           clientId: (<IClient>authCode.clientId)._id,
           userId: authCode.userId,
           scopes: authCode.scopes,
@@ -162,7 +171,11 @@ server.exchange(oauth2orize.exchange.password(async (client, username, password,
 
     try {
       const accessToken = await new accessTokenModel({
-        value: accessTokenValueGenerator(),
+        value: OAuth2Utils.createJWTAccessToken({
+          scope,
+          aud: client._id,
+          sub: user._id,
+        }),
         clientId: client._id,
         userId: user._id,
         scopes: scope,
@@ -203,7 +216,11 @@ server.exchange(oauth2orize.exchange.clientCredentials(async (client: IClient, s
 
   try {
     const accessToken = await new accessTokenModel({
-      value: accessTokenValueGenerator(),
+      value: OAuth2Utils.createJWTAccessToken({
+        aud: '',
+        sub: client._id,
+        scope: client.scopes,
+      }),
       clientId: client._id,
       grantType: 'client_credentials',
       scopes: client.scopes,
@@ -240,7 +257,11 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
       (<IClient>(<IAccessToken>refreshTokenDoc.accessTokenId).clientId).id === client.id) {
     try {
       const accessToken = await new accessTokenModel({
-        value: accessTokenValueGenerator(),
+        value: OAuth2Utils.createJWTAccessToken({
+          aud: (<IAccessToken>refreshTokenDoc.accessTokenId).clientId as string,
+          sub: (<IAccessToken>refreshTokenDoc.accessTokenId).userId as string,
+          scope: (<IAccessToken>refreshTokenDoc.accessTokenId).scopes,
+        }),
         clientId: (<IAccessToken>refreshTokenDoc.accessTokenId).clientId,
         userId: (<IAccessToken>refreshTokenDoc.accessTokenId).userId,
         scopes: (<IAccessToken>refreshTokenDoc.accessTokenId).scopes,
@@ -367,6 +388,14 @@ export const tokenIntrospectionEndpoint = [
     const token = req.body.token;
 
     if (token) {
+      let jwtPayload = {};
+
+      try {
+        jwtPayload = OAuth2Utils.stripJWTAccessToken(token);
+      } catch (err) {
+        return res.status(200).send({ active: false });
+      }
+
       const accessToken =
         await accessTokenModel.findOne({ value: token }).populate('userId clientId').lean();
 
@@ -377,10 +406,9 @@ export const tokenIntrospectionEndpoint = [
         return res.status(200).send({
           active: true,
           clientId: (<IAccessToken>accessToken.clientId).id,
-          scope: accessToken.scopes.join(' '),
-          exp: accessToken.expireAt.getTime() + config.ACCESS_TOKEN_EXPIRATION_TIME * 1000,
           ...(accessToken.userId && typeof accessToken.userId === 'object' ?
              { username: accessToken.userId.name } : null),
+          ...jwtPayload,
         });
       }
     }
