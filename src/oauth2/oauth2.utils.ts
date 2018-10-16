@@ -44,9 +44,9 @@ export interface JWTPayload {
 
 export class OAuth2Utils {
 
-  private static readonly privatKey = fs.readFileSync(pathJoin(__dirname, config.privateKeyPath));
+  private static readonly privateKey = fs.readFileSync(pathJoin(__dirname, config.privateKeyPath));
 
   static createJWTAccessToken(payload: JWTPayload) {
-    return jwt.sign(payload, OAuth2Utils.privatKey);
+    return jwt.sign(payload, OAuth2Utils.privateKey);
   }
 }
