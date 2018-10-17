@@ -207,7 +207,9 @@ server.exchange(oauth2orize.exchange.password(
           accessTokenId: accessToken._id,
         }).save();
 
-        const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+        const additionalParams = {
+          expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+        };
         return done(null, accessToken.value, refreshToken.value, additionalParams);
       } catch (err) {
         return done(err);
@@ -257,7 +259,9 @@ server.exchange(oauth2orize.exchange.clientCredentials(
 
       // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
       // Refresh token SHOULD NOT be included in client credentials
-      const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+      const additionalParams = {
+        expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+      };
       return done(null, accessToken.value, undefined, additionalParams);
 
     } catch (err) {
@@ -288,12 +292,13 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
     try {
       const accessToken = await new accessTokenModel({
         value: OAuth2Utils.createJWTAccessToken({
-          aud: (<IAccessToken>refreshTokenDoc.accessTokenId).clientId as string,
+          aud: (<IAccessToken>refreshTokenDoc.accessTokenId).audience,
           sub: (<IAccessToken>refreshTokenDoc.accessTokenId).userId as string,
           scope: (<IAccessToken>refreshTokenDoc.accessTokenId).scopes,
         }),
         clientId: (<IAccessToken>refreshTokenDoc.accessTokenId).clientId,
         userId: (<IAccessToken>refreshTokenDoc.accessTokenId).userId,
+        audience: (<IAccessToken>refreshTokenDoc.accessTokenId).audience,
         scopes: (<IAccessToken>refreshTokenDoc.accessTokenId).scopes,
         grantType: (<IAccessToken>refreshTokenDoc.accessTokenId).grantType,
       }).save();
@@ -309,7 +314,9 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
 
       // Should consider security-wise returning a new refresh token with the response.
       // Maybe in future releases refresh token will be omitted.
-      const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+      const additionalParams = {
+        expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+      };
       return done(null, accessToken.value, newRefreshToken.value, additionalParams);
     } catch (err) {
       return done(err);

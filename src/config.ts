@@ -7,7 +7,7 @@ const config = {
   AUTH_CODE_EXPIRATION_TIME: 120, // 2 Minutes
   ACCESS_TOKEN_EXPIRATION_TIME: 180, // 3 Minutes
   REFRESH_TOKEN_EXPIRATION_TIME: 180, // 3 Minutes
-  QUICK_FIX_DELAY: 40, // Delay in delete access token execution
+  QUICK_FIX_DELAY: 30, // Delay in delete access token execution
 
   // Lengths
   AUTH_CODE_LENGTH: 50,
