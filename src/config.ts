@@ -1,5 +1,7 @@
 // config
 
+import { join } from 'path';
+
 const config = {
   // Expiration Times - format in seconds for mongoose TTL expiration field
   AUTH_CODE_EXPIRATION_TIME: 120, // 2 Minutes
@@ -30,9 +32,9 @@ const config = {
   mongoUrl: 'mongodb://admin:Aa123456@ds125352.mlab.com:25352/authorization_server',
 
   // SSL Configuration
-  privateKeyPath: 'certs/privatekey.pem',
-  publicKeyPath: 'certs/publickey.pem',
-  certificatePath: 'certs/certificate.pem',
+  privateKeyPath: join(__dirname, 'certs/privatekey.pem'),
+  publicKeyPath: join(__dirname, 'certs/publickey.pem'),
+  certificatePath: join(__dirname, 'certs/certificate.pem'),
 
   // JWT Configuration
   issuerHostUri: 'https://localhost:1337',

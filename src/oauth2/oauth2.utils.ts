@@ -3,7 +3,6 @@
 import config from '../config';
 import { default as jwt } from 'jsonwebtoken';
 import fs from 'fs';
-import { join as pathJoin } from 'path';
 
 /**
  * NOTE: There are big differences between the 'aud' and 'sub' claims.
@@ -48,13 +47,13 @@ export interface JWTPayloadData {
 
 export class OAuth2Utils {
 
-  private static readonly privatKey = fs.readFileSync(pathJoin(__dirname, config.privateKeyPath));
-  private static readonly publicKey = fs.readFileSync(pathJoin(__dirname, config.publicKeyPath));
+  private static readonly privateKey = fs.readFileSync(config.privateKeyPath);
+  private static readonly publicKey = fs.readFileSync(config.publicKeyPath);
 
   static createJWTAccessToken(payload: JWTPayloadData) {
     return jwt.sign(
       { ...payload, iat: Date.now() },
-      OAuth2Utils.privatKey,
+      OAuth2Utils.privateKey,
       { issuer: config.issuerHostUri, expiresIn: config.ACCESS_TOKEN_EXPIRATION_TIME },
     );
   }

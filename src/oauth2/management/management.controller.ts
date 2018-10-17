@@ -64,12 +64,11 @@ export class ManagementController {
     // Due to problem getting the model when updating, we need to seperate the query to
     // 2, one for getting the model and updating the changes, other for setting the changes
     // and checking it via the validators.
-
     const clientDoc = await clientModel.findOne({ id: clientId });
 
     if (clientDoc) {
       Object.assign(clientDoc, clientInformation);
-      clientDoc.save();
+      await clientDoc.save();
 
       return clientDoc;
     }
