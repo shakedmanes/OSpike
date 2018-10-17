@@ -173,40 +173,49 @@ server.exchange(oauth2orize.exchange.code(
  * from the token request for verification. If these values are validated, the
  * application issues an access token on behalf of the user who authorized the code.
  */
-server.exchange(oauth2orize.exchange.password(async (client, username, password, scope, done) => {
+server.exchange(oauth2orize.exchange.password(
+  {},
+  async (client, username, password, scope, body, done) => {
 
-  // In the user model schema we authenticate via email & password so username should be the email
-  const user = await userModel.findOne({ email: username }).lean();
-
-  if (user && validatePasswordHash(password, user.password)) {
-
-    try {
-      const accessToken = await new accessTokenModel({
-        value: OAuth2Utils.createJWTAccessToken({
-          scope,
-          aud: client._id,
-          sub: user._id,
-        }),
-        clientId: client._id,
-        userId: user._id,
-        scopes: scope,
-        grantType: 'password',
-      }).save();
-
-      const refreshToken = await new refreshTokenModel({
-        value: refreshTokenValueGenerator(),
-        accessTokenId: accessToken._id,
-      }).save();
-
-      const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
-      return done(null, accessToken.value, refreshToken.value, additionalParams);
-    } catch (err) {
-      return done(err);
+    // Check if audience specified
+    if (!body.audience) {
+      return done(new BadRequest('The audience parameter is missing.'));
     }
-  }
 
-  return done(null, false);
-}));
+    // In the user model schema we authenticate via email & password so username should be the email
+    const user = await userModel.findOne({ email: username }).lean();
+
+    if (user && validatePasswordHash(password, user.password)) {
+
+      try {
+        const accessToken = await new accessTokenModel({
+          value: OAuth2Utils.createJWTAccessToken({
+            scope,
+            aud: body.audience,
+            sub: user._id,
+          }),
+          clientId: client._id,
+          userId: user._id,
+          scopes: scope,
+          audience: body.audience,
+          grantType: 'password',
+        }).save();
+
+        const refreshToken = await new refreshTokenModel({
+          value: refreshTokenValueGenerator(),
+          accessTokenId: accessToken._id,
+        }).save();
+
+        const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+        return done(null, accessToken.value, refreshToken.value, additionalParams);
+      } catch (err) {
+        return done(err);
+      }
+    }
+
+    return done(null, false);
+  },
+));
 
 /**
  * Grant Client Credentials
