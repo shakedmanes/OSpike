@@ -96,12 +96,13 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
   try {
     const accessToken = await new accessTokenModel({
       value: OAuth2Utils.createJWTAccessToken({
-        aud: client.id,
+        aud: ares.audience,
         sub: user._id,
         scope: ares.scope,
       }),
       clientId: client._id,
       userId: user._id,
+      audience: ares.audience,
       scopes: ares.scope,
       grantType: 'token',
     }).save();
