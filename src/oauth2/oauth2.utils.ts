@@ -52,9 +52,12 @@ export class OAuth2Utils {
 
   static createJWTAccessToken(payload: JWTPayloadData) {
     return jwt.sign(
-      { ...payload, iat: Date.now() },
+      { ...payload },
       OAuth2Utils.privateKey,
-      { issuer: config.issuerHostUri, expiresIn: config.ACCESS_TOKEN_EXPIRATION_TIME },
+      {
+        issuer: config.issuerHostUri,
+        expiresIn: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+      },
     );
   }
 

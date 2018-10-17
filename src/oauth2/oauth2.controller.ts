@@ -51,10 +51,17 @@ const ensureLoggedInMiddleware = ensureLoggedIn.bind({}, loginUri);
 server.grant(oauth2orize.grant.code(
   async (client, redirectUri, user, ares, done) => {
 
-    // Check if there's token already for the user and client, therfore avoid generating code
-    const token = await accessTokenModel.findOne({ clientId: client._id, userId: user._id });
+    // Check if there's token already for the user and client for the audience,
+    // therfore avoid generating code
+    const token = await accessTokenModel.findOne({
+      clientId: client._id,
+      userId: user._id,
+      audience: ares.audience,
+    });
+
     if (token) {
-      return done(new BadRequest(`There's already access token for that client and user.`));
+      return done(new BadRequest('There\'s already access token for that \
+                                  client and user for that audience.'));
     }
 
     try {
@@ -64,6 +71,7 @@ server.grant(oauth2orize.grant.code(
         clientId: client._id,
         userId: user._id,
         scopes: ares.scope,
+        audience: ares.audience,
       }).save();
 
       return done(null, authCode.value);
@@ -122,12 +130,13 @@ server.exchange(oauth2orize.exchange.code(
         // Generate fresh access token
         const accessToken = await new accessTokenModel({
           value: OAuth2Utils.createJWTAccessToken({
-            aud: client._id,
+            aud: authCode.audience,
             sub: authCode.userId as string,
             scope: authCode.scopes,
           }),
           clientId: (<IClient>authCode.clientId)._id,
           userId: authCode.userId,
+          audience: authCode.audience,
           scopes: authCode.scopes,
           grantType: 'code',
         }).save();
@@ -138,7 +147,9 @@ server.exchange(oauth2orize.exchange.code(
           accessTokenId: accessToken._id,
         }).save();
 
-        const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+        const additionalParams = {
+          expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+        };
         done(null, accessToken.value, refreshToken.value, additionalParams);
       } catch (err) {
         done(err);
@@ -295,16 +306,19 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
 export const authorizationEndpoint = [
   ensureLoggedInMiddleware(),
   server.authorization(
-    async (clientId, redirectUri, done) => {
-      // TODO: Check if scope and areq includes and enforce them
-      // tslint:disable-next-line:max-line-length
-      // (add scope and areq to function params) as https://github.com/FrankHassanabad/Oauth2orizeRecipes/blob/master/authorization-server/oauth2.js#L157
-      const client = await clientModel.findOne({ id: clientId }).lean();
-      if (client && client.redirectUris.indexOf(redirectUri) > -1) {
+    // TODO: add typing for new validate function
+    async (areq: any , done: any) => {
+      const client = await clientModel.findOne({ id: areq.clientID }).lean();
+      if (client && client.redirectUris.indexOf(areq.redirectURI) > -1) {
 
-        // NEED TO VALIDATE CLIENT SECRET SOMEHOW
-        // - MAYBE IN THE PASSPORT STRATEGYS MIDDLEWARES FOR THE ENDPOINT
-        return done(null, client, redirectUri);
+        /**
+         * Note For Future Releases:
+         * We need to validate the scopes requested - check if the client has the scopes
+         * that he trying to acheive with the checkSufficientScopes function
+         * found in scopeUtils file
+         */
+
+        return done(null, client, areq.redirectURI);
       }
       // Client specified not found or invalid redirect uri specified.
       // Generates error - AuthorizationError('Unauthorized client', 'unauthorized_client')
@@ -321,14 +335,14 @@ export const authorizationEndpoint = [
       //       To drop the access token that the client have and create a new one with
       //       The requested scopes.
       if (accessToken && isScopeEquals(accessToken.scopes, scope)) {
-        return done(null, true, null, null);
+        return done(null, true, { scope: areq.scope }, null);
       }
 
       // TODO: Implement option for user to allow once for the client and if he want to change
       //       He can do that after. So we can check quickly if the user allowed that client before.
 
       // Let the user decide
-      return done(null, false, null, null);
+      return done(null, false, { scope: areq.scope }, null);
     },
 
   ),
@@ -338,6 +352,14 @@ export const authorizationEndpoint = [
 
   // TODO: Implement request handler for the user stage of allow authorization to requested scopes
   (req: any, res: Response, next: NextFunction) => {
+
+    // Put on the oauth2 request information object the audience
+    if (!req.query.audience) {
+      throw new BadRequest('The audience parameter is missing.');
+    }
+
+    req.oauth2.info.audience = req.query.audience;
+
     res.render('decision', {
       transactionID: req.oauth2.transactionID,
       user: req.user,
@@ -357,8 +379,8 @@ export const authorizationEndpoint = [
 export const decisionEndpoint = [
   ensureLoggedInMiddleware(),
   server.decision((req, done) => {
-    // Pass the scope request down the chain
-    return done(null, req.oauth2 ? { scope: req.oauth2.req.scope } : {});
+    // Pass the request information to the authorization grant middleware
+    return done(null, req.oauth2 ? req.oauth2.info : {});
   }),
 ];
 

@@ -24,6 +24,10 @@ const accessTokenSchema = new Schema({
     // required: true,
     validate: userRefValidator,
   },
+  audience: {
+    type: String,
+    required: true,
+  },
   value: {
     type: String,
     unique: true,
