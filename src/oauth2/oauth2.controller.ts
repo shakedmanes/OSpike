@@ -196,8 +196,8 @@ server.exchange(oauth2orize.exchange.password(
           }),
           clientId: client._id,
           userId: user._id,
-          scopes: scope,
           audience: body.audience,
+          scopes: scope,
           grantType: 'password',
         }).save();
 
@@ -226,35 +226,44 @@ server.exchange(oauth2orize.exchange.password(
  * password/secret from the token request for verification. If these values are validated, the
  * application issues an access token on behalf of the client who authorized the code.
  */
-server.exchange(oauth2orize.exchange.clientCredentials(async (client: IClient, scope, done) => {
+server.exchange(oauth2orize.exchange.clientCredentials(
+  {},
+  async (client: IClient, scope, body, done) => {
 
-  // If the client doesn't have actually scopes to grant authorization on
-  if (client.scopes.length === 0) {
-    const errorMessage = `Client doesn't support client_credentials due incomplete scopes value`;
-    return (done(new BadRequest(errorMessage)));
-  }
+    // If the client doesn't have actually scopes to grant authorization on
+    if (client.scopes.length === 0) {
+      const errorMessage = `Client doesn't support client_credentials due incomplete scopes value`;
+      return done(new BadRequest(errorMessage));
+    }
 
-  try {
-    const accessToken = await new accessTokenModel({
-      value: OAuth2Utils.createJWTAccessToken({
-        aud: '',
-        sub: client._id,
-        scope: client.scopes,
-      }),
-      clientId: client._id,
-      grantType: 'client_credentials',
-      scopes: client.scopes,
-    }).save();
+    // Check if audience specified
+    if (!body.audience) {
+      return done(new BadRequest('The audience parameter is missing.'));
+    }
 
-    // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
-    // Refresh token SHOULD NOT be included in client credentials
-    const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
-    return done(null, accessToken.value, undefined, additionalParams);
+    try {
+      const accessToken = await new accessTokenModel({
+        value: OAuth2Utils.createJWTAccessToken({
+          aud: body.audience,
+          sub: client._id,
+          scope: client.scopes,
+        }),
+        clientId: client._id,
+        audience: body.audience,
+        grantType: 'client_credentials',
+        scopes: client.scopes,
+      }).save();
 
-  } catch (err) {
-    return done(err);
-  }
-}));
+      // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
+      // Refresh token SHOULD NOT be included in client credentials
+      const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+      return done(null, accessToken.value, undefined, additionalParams);
+
+    } catch (err) {
+      return done(err);
+    }
+  },
+));
 
 /**
  * Exchange the refresh token for an access token.
