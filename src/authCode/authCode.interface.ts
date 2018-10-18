@@ -8,6 +8,7 @@ export interface IAuthCode extends IBaseModel {
   value: string;
   clientId: string | IClient; // Client ID or Client Model after population
   userId: string | IUser; // User ID or User model after population
+  audience: string; // Audience of the token (for which resource server the token should be used)
   redirectUri: string;
   scopes: string[];
   expireAt: Date;

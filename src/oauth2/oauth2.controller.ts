@@ -6,9 +6,9 @@ import passport from 'passport';
 import { Response, Request, NextFunction } from 'express';
 import {
   authCodeValueGenerator,
-  accessTokenValueGenerator,
   refreshTokenValueGenerator,
 } from '../utils/valueGenerator';
+import { OAuth2Utils } from './oauth2.utils';
 import authCodeModel from '../authCode/authCode.model';
 import accessTokenModel from '../accessToken/accessToken.model';
 import { IAccessToken } from '../accessToken/accessToken.interface';
@@ -50,10 +50,17 @@ const ensureLoggedInMiddleware = ensureLoggedIn.bind({}, loginUri);
 server.grant(oauth2orize.grant.code(
   async (client, redirectUri, user, ares, done) => {
 
-    // Check if there's token already for the user and client, therfore avoid generating code
-    const token = await accessTokenModel.findOne({ clientId: client._id, userId: user._id });
+    // Check if there's token already for the user and client for the audience,
+    // therfore avoid generating code
+    const token = await accessTokenModel.findOne({
+      clientId: client._id,
+      userId: user._id,
+      audience: ares.audience,
+    });
+
     if (token) {
-      return done(new BadRequest(`There's already access token for that client and user.`));
+      return done(new BadRequest('There\'s already access token for that \
+                                  client and user for that audience.'));
     }
 
     try {
@@ -63,6 +70,7 @@ server.grant(oauth2orize.grant.code(
         clientId: client._id,
         userId: user._id,
         scopes: ares.scope,
+        audience: ares.audience,
       }).save();
 
       return done(null, authCode.value);
@@ -86,9 +94,14 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
 
   try {
     const accessToken = await new accessTokenModel({
-      value: accessTokenValueGenerator(),
+      value: OAuth2Utils.createJWTAccessToken({
+        aud: ares.audience,
+        sub: user._id,
+        scope: ares.scope,
+      }),
       clientId: client._id,
       userId: user._id,
+      audience: ares.audience,
       scopes: ares.scope,
       grantType: 'token',
     }).save();
@@ -116,9 +129,14 @@ server.exchange(oauth2orize.exchange.code(
 
         // Generate fresh access token
         const accessToken = await new accessTokenModel({
-          value: accessTokenValueGenerator(),
+          value: OAuth2Utils.createJWTAccessToken({
+            aud: authCode.audience,
+            sub: authCode.userId as string,
+            scope: authCode.scopes,
+          }),
           clientId: (<IClient>authCode.clientId)._id,
           userId: authCode.userId,
+          audience: authCode.audience,
           scopes: authCode.scopes,
           grantType: 'code',
         }).save();
@@ -129,7 +147,9 @@ server.exchange(oauth2orize.exchange.code(
           accessTokenId: accessToken._id,
         }).save();
 
-        const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+        const additionalParams = {
+          expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+        };
         done(null, accessToken.value, refreshToken.value, additionalParams);
       } catch (err) {
         done(err);
@@ -153,36 +173,51 @@ server.exchange(oauth2orize.exchange.code(
  * from the token request for verification. If these values are validated, the
  * application issues an access token on behalf of the user who authorized the code.
  */
-server.exchange(oauth2orize.exchange.password(async (client, username, password, scope, done) => {
+server.exchange(oauth2orize.exchange.password(
+  {},
+  async (client, username, password, scope, body, done) => {
 
-  // In the user model schema we authenticate via email & password so username should be the email
-  const user = await userModel.findOne({ email: username }).lean();
-
-  if (user && validatePasswordHash(password, user.password)) {
-
-    try {
-      const accessToken = await new accessTokenModel({
-        value: accessTokenValueGenerator(),
-        clientId: client._id,
-        userId: user._id,
-        scopes: scope,
-        grantType: 'password',
-      }).save();
-
-      const refreshToken = await new refreshTokenModel({
-        value: refreshTokenValueGenerator(),
-        accessTokenId: accessToken._id,
-      }).save();
-
-      const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
-      return done(null, accessToken.value, refreshToken.value, additionalParams);
-    } catch (err) {
-      return done(err);
+    // Check if audience specified
+    if (!body.audience) {
+      return done(new BadRequest('The audience parameter is missing.'));
     }
-  }
 
-  return done(null, false);
-}));
+    // In the user model schema we authenticate via email & password so username should be the email
+    const user = await userModel.findOne({ email: username }).lean();
+
+    if (user && validatePasswordHash(password, user.password)) {
+
+      try {
+        const accessToken = await new accessTokenModel({
+          value: OAuth2Utils.createJWTAccessToken({
+            scope,
+            aud: body.audience,
+            sub: user._id,
+          }),
+          clientId: client._id,
+          userId: user._id,
+          audience: body.audience,
+          scopes: scope,
+          grantType: 'password',
+        }).save();
+
+        const refreshToken = await new refreshTokenModel({
+          value: refreshTokenValueGenerator(),
+          accessTokenId: accessToken._id,
+        }).save();
+
+        const additionalParams = {
+          expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+        };
+        return done(null, accessToken.value, refreshToken.value, additionalParams);
+      } catch (err) {
+        return done(err);
+      }
+    }
+
+    return done(null, false);
+  },
+));
 
 /**
  * Grant Client Credentials
@@ -193,31 +228,46 @@ server.exchange(oauth2orize.exchange.password(async (client, username, password,
  * password/secret from the token request for verification. If these values are validated, the
  * application issues an access token on behalf of the client who authorized the code.
  */
-server.exchange(oauth2orize.exchange.clientCredentials(async (client: IClient, scope, done) => {
+server.exchange(oauth2orize.exchange.clientCredentials(
+  {},
+  async (client: IClient, scope, body, done) => {
 
-  // If the client doesn't have actually scopes to grant authorization on
-  if (client.scopes.length === 0) {
-    const errorMessage = `Client doesn't support client_credentials due incomplete scopes value`;
-    return (done(new BadRequest(errorMessage)));
-  }
+    // If the client doesn't have actually scopes to grant authorization on
+    if (client.scopes.length === 0) {
+      const errorMessage = `Client doesn't support client_credentials due incomplete scopes value`;
+      return done(new BadRequest(errorMessage));
+    }
 
-  try {
-    const accessToken = await new accessTokenModel({
-      value: accessTokenValueGenerator(),
-      clientId: client._id,
-      grantType: 'client_credentials',
-      scopes: client.scopes,
-    }).save();
+    // Check if audience specified
+    if (!body.audience) {
+      return done(new BadRequest('The audience parameter is missing.'));
+    }
 
-    // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
-    // Refresh token SHOULD NOT be included in client credentials
-    const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
-    return done(null, accessToken.value, undefined, additionalParams);
+    try {
+      const accessToken = await new accessTokenModel({
+        value: OAuth2Utils.createJWTAccessToken({
+          aud: body.audience,
+          sub: client._id,
+          scope: client.scopes,
+        }),
+        clientId: client._id,
+        audience: body.audience,
+        grantType: 'client_credentials',
+        scopes: client.scopes,
+      }).save();
 
-  } catch (err) {
-    return done(err);
-  }
-}));
+      // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
+      // Refresh token SHOULD NOT be included in client credentials
+      const additionalParams = {
+        expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+      };
+      return done(null, accessToken.value, undefined, additionalParams);
+
+    } catch (err) {
+      return done(err);
+    }
+  },
+));
 
 /**
  * Exchange the refresh token for an access token.
@@ -240,9 +290,14 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
       (<IClient>(<IAccessToken>refreshTokenDoc.accessTokenId).clientId).id === client.id) {
     try {
       const accessToken = await new accessTokenModel({
-        value: accessTokenValueGenerator(),
+        value: OAuth2Utils.createJWTAccessToken({
+          aud: (<IAccessToken>refreshTokenDoc.accessTokenId).audience,
+          sub: (<IAccessToken>refreshTokenDoc.accessTokenId).userId as string,
+          scope: (<IAccessToken>refreshTokenDoc.accessTokenId).scopes,
+        }),
         clientId: (<IAccessToken>refreshTokenDoc.accessTokenId).clientId,
         userId: (<IAccessToken>refreshTokenDoc.accessTokenId).userId,
+        audience: (<IAccessToken>refreshTokenDoc.accessTokenId).audience,
         scopes: (<IAccessToken>refreshTokenDoc.accessTokenId).scopes,
         grantType: (<IAccessToken>refreshTokenDoc.accessTokenId).grantType,
       }).save();
@@ -258,7 +313,9 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
 
       // Should consider security-wise returning a new refresh token with the response.
       // Maybe in future releases refresh token will be omitted.
-      const additionalParams = { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME };
+      const additionalParams = {
+        expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+      };
       return done(null, accessToken.value, newRefreshToken.value, additionalParams);
     } catch (err) {
       return done(err);
@@ -274,16 +331,19 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
 export const authorizationEndpoint = [
   ensureLoggedInMiddleware(),
   server.authorization(
-    async (clientId, redirectUri, done) => {
-      // TODO: Check if scope and areq includes and enforce them
-      // tslint:disable-next-line:max-line-length
-      // (add scope and areq to function params) as https://github.com/FrankHassanabad/Oauth2orizeRecipes/blob/master/authorization-server/oauth2.js#L157
-      const client = await clientModel.findOne({ id: clientId }).lean();
-      if (client && client.redirectUris.indexOf(redirectUri) > -1) {
+    // TODO: add typing for new validate function
+    async (areq: any , done: any) => {
+      const client = await clientModel.findOne({ id: areq.clientID }).lean();
+      if (client && client.redirectUris.indexOf(areq.redirectURI) > -1) {
 
-        // NEED TO VALIDATE CLIENT SECRET SOMEHOW
-        // - MAYBE IN THE PASSPORT STRATEGYS MIDDLEWARES FOR THE ENDPOINT
-        return done(null, client, redirectUri);
+        /**
+         * Note For Future Releases:
+         * We need to validate the scopes requested - check if the client has the scopes
+         * that he trying to acheive with the checkSufficientScopes function
+         * found in scopeUtils file
+         */
+
+        return done(null, client, areq.redirectURI);
       }
       // Client specified not found or invalid redirect uri specified.
       // Generates error - AuthorizationError('Unauthorized client', 'unauthorized_client')
@@ -300,14 +360,14 @@ export const authorizationEndpoint = [
       //       To drop the access token that the client have and create a new one with
       //       The requested scopes.
       if (accessToken && isScopeEquals(accessToken.scopes, scope)) {
-        return done(null, true, null, null);
+        return done(null, true, { scope: areq.scope }, null);
       }
 
       // TODO: Implement option for user to allow once for the client and if he want to change
       //       He can do that after. So we can check quickly if the user allowed that client before.
 
       // Let the user decide
-      return done(null, false, null, null);
+      return done(null, false, { scope: areq.scope }, null);
     },
 
   ),
@@ -317,6 +377,14 @@ export const authorizationEndpoint = [
 
   // TODO: Implement request handler for the user stage of allow authorization to requested scopes
   (req: any, res: Response, next: NextFunction) => {
+
+    // Put on the oauth2 request information object the audience
+    if (!req.query.audience) {
+      throw new BadRequest('The audience parameter is missing.');
+    }
+
+    req.oauth2.info.audience = req.query.audience;
+
     res.render('decision', {
       transactionID: req.oauth2.transactionID,
       user: req.user,
@@ -336,8 +404,8 @@ export const authorizationEndpoint = [
 export const decisionEndpoint = [
   ensureLoggedInMiddleware(),
   server.decision((req, done) => {
-    // Pass the scope request down the chain
-    return done(null, req.oauth2 ? { scope: req.oauth2.req.scope } : {});
+    // Pass the request information to the authorization grant middleware
+    return done(null, req.oauth2 ? req.oauth2.info : {});
   }),
 ];
 
@@ -367,6 +435,14 @@ export const tokenIntrospectionEndpoint = [
     const token = req.body.token;
 
     if (token) {
+      let jwtPayload = {};
+
+      try {
+        jwtPayload = OAuth2Utils.stripJWTAccessToken(token);
+      } catch (err) {
+        return res.status(200).send({ active: false });
+      }
+
       const accessToken =
         await accessTokenModel.findOne({ value: token }).populate('userId clientId').lean();
 
@@ -377,10 +453,9 @@ export const tokenIntrospectionEndpoint = [
         return res.status(200).send({
           active: true,
           clientId: (<IAccessToken>accessToken.clientId).id,
-          scope: accessToken.scopes.join(' '),
-          exp: accessToken.expireAt.getTime() + config.ACCESS_TOKEN_EXPIRATION_TIME * 1000,
           ...(accessToken.userId && typeof accessToken.userId === 'object' ?
              { username: accessToken.userId.name } : null),
+          ...jwtPayload,
         });
       }
     }

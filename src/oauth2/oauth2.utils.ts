@@ -32,20 +32,37 @@ import fs from 'fs';
  * generated for him.
  *
  */
-export interface JWTPayload {
+export interface JWTPayload extends JWTPayloadData {
   iss: string; // Issuer of the JWT (who issued that JWT [authorization server])
+  iat: number; // Issued at time of the token in milliseconds
+  exp: number; // Expiration time of the token in milliseconds
+}
+
+export interface JWTPayloadData {
   aud: string; // Audience of the JWT (receipent that the JWT intended for)
   sub: string; // The subject of the JWT (the user/client the JWT generated for)
   scope: string[]; // The scopes for the JWT
-  iat: number; // Issued at time of the token in milliseconds
-  exp: number; // Expiration time of the token in milliseconds
+
 }
 
 export class OAuth2Utils {
 
   private static readonly privateKey = fs.readFileSync(config.privateKeyPath);
+  private static readonly publicKey = fs.readFileSync(config.publicKeyPath);
 
-  static createJWTAccessToken(payload: JWTPayload) {
-    return jwt.sign(payload, OAuth2Utils.privateKey);
+  static createJWTAccessToken(payload: JWTPayloadData) {
+    return jwt.sign(
+      { ...payload },
+      OAuth2Utils.privateKey,
+      {
+        issuer: config.issuerHostUri,
+        expiresIn: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+        algorithm: config.jwtAlgorithm,
+      },
+    );
+  }
+
+  static stripJWTAccessToken(accessToken: string) {
+    return jwt.verify(accessToken, OAuth2Utils.publicKey);
   }
 }
