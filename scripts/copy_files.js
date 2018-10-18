@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const copyPath = require('./config').copyPath;
 
 function copyFileSync(source, target) {
   let targetFile = target;
@@ -43,7 +44,7 @@ function copyFolderRecursiveSync(source, target) {
   }
 }
 
-// Copy certs folder to build
-copyFolderRecursiveSync('./src/certs', './dist');
-// Copy views folder to build
-copyFolderRecursiveSync('./src/views', './dist');
+// Copies all the required paths before compilation
+for (let currentCopyPath of copyPath) {
+    copyFolderRecursiveSync(currentCopyPath.src, currentCopyPath.dest);
+}

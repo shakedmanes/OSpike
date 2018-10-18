@@ -6,7 +6,6 @@ import passport from 'passport';
 import { Response, Request, NextFunction } from 'express';
 import {
   authCodeValueGenerator,
-  accessTokenValueGenerator,
   refreshTokenValueGenerator,
 } from '../utils/valueGenerator';
 import { OAuth2Utils } from './oauth2.utils';
