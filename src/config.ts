@@ -39,6 +39,7 @@ const config = {
 
   // JWT Configuration
   issuerHostUri: 'https://localhost:1337',
+  jwtAlgorithm: 'RS256',
 };
 
 export default config;

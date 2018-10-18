@@ -57,6 +57,7 @@ export class OAuth2Utils {
       {
         issuer: config.issuerHostUri,
         expiresIn: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+        algorithm: config.jwtAlgorithm,
       },
     );
   }
