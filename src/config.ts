@@ -1,10 +1,13 @@
 // config
 
+import { join } from 'path';
+
 const config = {
   // Expiration Times - format in seconds for mongoose TTL expiration field
   AUTH_CODE_EXPIRATION_TIME: 120, // 2 Minutes
   ACCESS_TOKEN_EXPIRATION_TIME: 180, // 3 Minutes
   REFRESH_TOKEN_EXPIRATION_TIME: 180, // 3 Minutes
+  QUICK_FIX_DELAY: 30, // Delay in delete access token execution
 
   // Lengths
   AUTH_CODE_LENGTH: 50,
@@ -28,6 +31,16 @@ const config = {
 
   // MongoDB Url
   mongoUrl: 'mongodb://admin:Aa123456@ds125352.mlab.com:25352/authorization_server',
+
+  // SSL Configuration
+  privateKeyPath: join(__dirname, 'certs/files/privatekey.pem'),
+  publicKeyPath: join(__dirname, 'certs/files/publickey.pem'),
+  certificatePath: join(__dirname, 'certs/files/certificate.pem'),
+
+  // JWT Configuration
+  issuerHostUri: 'https://localhost:1337',
+  jwtAlgorithm: 'RS256',
+  jwksPath: join(__dirname, 'certs/files/jwks.json'),
 };
 
 export default config;
