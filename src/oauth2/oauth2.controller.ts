@@ -446,10 +446,37 @@ export const tokenIntrospectionEndpoint = [
       const accessToken =
         await accessTokenModel.findOne({ value: token }).populate('userId clientId').lean();
 
+      // TODO: MUST refactor this in single query. Perform aggregation in accessToken document on
+      // audience client by hostUri
+      const accessTokenWithAudience = await accessTokenModel.aggregate([
+        { $match: { value: token } },
+        { $lookup: {
+          from: 'clients', // collection name in db
+          localField: 'audience',
+          foreignField: 'hostUri',
+          as: 'audienceClient',
+        }},
+        // { $lookup: {
+        //   from: 'users', // collection name in db
+        //   let: { newUserId: 'userId' },
+        //   localField: { 'userId': { $toObjectId: '$newUserId' } },
+        //   foreignField: '_id',
+        //   as: 'userId',
+        // }},
+        // { $lookup: {
+        //   from: 'clients', // collection name in db
+        //   localField: 'clientId',
+        //   foreignField: '_id',
+        //   as: 'clientIdB',
+        // }},
+      ]);
+
       // If access token found and associated to the requester
       if (accessToken &&
           typeof accessToken.clientId === 'object' &&
-          (<IAccessToken>accessToken.clientId).id === req.user.id) {
+          ((<IAccessToken>accessToken.clientId).id === req.user.id ||
+          ((accessTokenWithAudience.length > 0) &&
+           (<any>accessTokenWithAudience[0]).audienceClient[0].id === req.user.id))) {
         return res.status(200).send({
           active: true,
           clientId: (<IAccessToken>accessToken.clientId).id,
