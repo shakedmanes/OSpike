@@ -232,11 +232,14 @@ server.exchange(oauth2orize.exchange.clientCredentials(
   {},
   async (client: IClient, scope, body, done) => {
 
+    // TODO: Uncomment the following code when scopes feature is ready.
+
     // If the client doesn't have actually scopes to grant authorization on
-    if (client.scopes.length === 0) {
-      const errorMessage = `Client doesn't support client_credentials due incomplete scopes value`;
-      return done(new BadRequest(errorMessage));
-    }
+    // if (client.scopes.length === 0) {
+    // tslint:disable-next-line:max-line-length
+    //   const errorMessage = `Client doesn't support client_credentials due incomplete scopes value`;
+    //   return done(new BadRequest(errorMessage));
+    // }
 
     // Check if audience specified
     if (!body.audience) {
