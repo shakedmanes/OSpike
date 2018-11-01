@@ -11,42 +11,48 @@ import config from '../config';
 // TODO: Define scope model and scope types
 // TODO: Define specific grant types available for token
 
-const accessTokenSchema = new Schema({
-  clientId: {
-    type: String,
-    ref: ClientModelName,
-    required: true,
-    validate: clientRefValidator,
+const accessTokenSchema = new Schema(
+  {
+    clientId: {
+      type: String,
+      ref: ClientModelName,
+      required: true,
+      validate: clientRefValidator,
+    },
+    userId: {
+      type: String,
+      ref: UserModelName,
+      // required: true,
+      validate: userRefValidator,
+    },
+    audience: {
+      type: String,
+      required: true,
+    },
+    value: {
+      type: String,
+      unique: true,
+      required: true,
+    },
+    scopes: {
+      type: [String],
+      required: true,
+    },
+    grantType: {
+      type: String,
+      required: true,
+    },
+    expireAt: { // Expiration time of token, the token will be deleted from db by the expires value.
+      type: Date,
+      default: Date.now,
+      expires: config.ACCESS_TOKEN_EXPIRATION_TIME,
+    },
   },
-  userId: {
-    type: String,
-    ref: UserModelName,
-    // required: true,
-    validate: userRefValidator,
+  {
+    toObject: { virtuals: true },
+    toJSON: { virtuals: true },
   },
-  audience: {
-    type: String,
-    required: true,
-  },
-  value: {
-    type: String,
-    unique: true,
-    required: true,
-  },
-  scopes: {
-    type: [String],
-    required: true,
-  },
-  grantType: {
-    type: String,
-    required: true,
-  },
-  expireAt: { // Expiration time of token, the token will be deleted from db by the expires value.
-    type: Date,
-    default: Date.now,
-    expires: config.ACCESS_TOKEN_EXPIRATION_TIME,
-  },
-});
+);
 
 // Ensures there's only one token for user in specific client app and audience
 accessTokenSchema.index({ clientId: 1, userId: 1, audience: 1 }, { unique: true });
@@ -58,6 +64,14 @@ accessTokenSchema.post('save', (err, doc, next) => {
   }
 
   next(err);
+});
+
+// Virtual field for audience client validations and population
+accessTokenSchema.virtual('audienceClient', {
+  ref: ClientModelName,
+  localField: 'audience',
+  foreignField: 'hostUri',
+  justOne: true,
 });
 
 /**
