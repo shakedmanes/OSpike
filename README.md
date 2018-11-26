@@ -1,4 +1,4 @@
-# authorization-server
+# OSpike
 An OAuth2 authorization server supporting OpenID Connect
 
 # Usage
