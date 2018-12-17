@@ -59,7 +59,7 @@ export class ManagementController {
    * @param clientInformation - Client information to update
    * @returns The updated client information
    */
-  static async updateClient(clientId: string, clientInformation: IClientBasicInformation) {
+  static async updateClient(clientId: string, clientInformation: Partial<IClientBasicInformation>) {
 
     // Due to problem getting the model when updating, we need to seperate the query to
     // 2, one for getting the model and updating the changes, other for setting the changes

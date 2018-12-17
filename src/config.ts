@@ -31,6 +31,7 @@ const config = {
 
   // MongoDB Url
   mongoUrl: 'mongodb://admin:Aa123456@ds125352.mlab.com:25352/authorization_server',
+  mongoUrlTest: 'mongodb://admin:Aa123456@ds259742.mlab.com:59742/authorization_server_test',
 
   // SSL Configuration
   privateKeyPath: join(__dirname, 'certs/files/privatekey.pem'),
