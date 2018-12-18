@@ -16,7 +16,7 @@
     "generate-certs": "node ./scripts/generate_certs.js",
     "generate-env": "node ./scripts/generate_env.js",
     "generate-jwks": "node ./scripts/generate_jwks.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run build && mocha dist/test.js dist/**/*.spec.js -t 3000"
   },
   "repository": {
     "type": "git",

@@ -7,7 +7,6 @@ import { IClientInformation, IClientBasicInformation } from './management.interf
 import { deleteCollections, propertyOf } from '../../test';
 import clientModel from '../../client/client.model';
 import { ClientNotFound } from './management.error';
-import { InvalidParameter } from '../../utils/error';
 
 describe('Client Management Operations Functionality', async () => {
 
@@ -27,6 +26,9 @@ describe('Client Management Operations Functionality', async () => {
 
   // Registered clients for updating queries
   let registerdClient = new clientModel({
+    id: '123456789',
+    secret: 'shhhhhitsecret',
+    registrationToken: 'blablaregistrationtoken',
     name: 'RegisterdClient',
     hostUri: 'https://www.www',
     redirectUris: ['https://www.www/callback'],
@@ -34,9 +36,32 @@ describe('Client Management Operations Functionality', async () => {
   });
 
   let registerdClient2 = new clientModel({
+    id: '987654321',
+    secret: 'classifiedsecret',
+    registrationToken: 'registrationtokenofclient',
     name: 'RegisterdClient2',
     hostUri: 'https://www2.www2',
     redirectUris: ['https://www2.www2/callback'],
+  });
+
+  // Clients for delete queries
+  let deleteClient = new clientModel({
+    id: 'abcdefghijk',
+    secret: 'csecretttttt',
+    registrationToken: 'clienttokenregistration',
+    name: 'deleteClient',
+    hostUri: 'https://rlwrwrwok.w',
+    redirectUris: ['https://rlwrwrwok.w/callback'],
+    scopes: ['read'],
+  });
+
+  let deleteClient2 = new clientModel({
+    id: 'blablaidofclient',
+    secret: 'verysophisticatedsecret',
+    registrationToken: 'uniqueextraordinaryregistrationtoken',
+    name: 'deleteClient2',
+    hostUri: 'https://ewewewewewewsss',
+    redirectUris: ['https://ewewewewewewsss/callback'],
   });
 
   // Invalid client by hostUri
@@ -88,6 +113,7 @@ describe('Client Management Operations Functionality', async () => {
     redirectUris: ['https://somehost/callback'],
   };
 
+  // Information to update on clients
   const updateClientInfo: IClientBasicInformation = {
     name: 'UpdatedRegisteredClient',
     hostUri: 'https://new.url',
@@ -100,28 +126,19 @@ describe('Client Management Operations Functionality', async () => {
     scopes: ['read', 'write', 'profile'],
   };
 
-  let deleteClient = new clientModel({
-    name: 'deleteClient',
-    hostUri: 'https://rlwrwrwok.w',
-    redirectUris: ['https://rlwrwrwok.w/callback'],
-    scopes: ['read'],
-  });
-
-  let deleteClient2 = new clientModel({
-    name: 'deleteClient2',
-    hostUri: 'https://ewewewewewewsss',
-    redirectUris: ['https://ewewewewewewsss/callback'],
-  });
-
   before(async () => {
     // Delete all collections before test suite
-    deleteCollections();
+    await deleteCollections();
 
     registerdClient = await registerdClient.save();
     registerdClient2 = await registerdClient2.save();
 
     deleteClient = await deleteClient.save();
     deleteClient2 = await deleteClient2.save();
+  });
+
+  after(async () => {
+    await deleteCollections();
   });
 
   describe('registerClient()', () => {
@@ -219,32 +236,8 @@ describe('Client Management Operations Functionality', async () => {
       const clientInformation2 = ManagementController.readClient(registerdClient2.id);
 
       return Promise.all([
-        expect(clientInformation).to.eventually.exist,
-        expect(clientInformation2).to.eventually.exist,
-        expect(clientInformation).to.eventually.have.property(
-          propertyOf<IClientInformation>('name'),
-          registerdClient.name,
-        ),
-        expect(clientInformation).to.eventually.have.property(
-          propertyOf<IClientInformation>('hostUri'),
-          registerdClient.hostUri,
-        ),
-        expect(clientInformation).to.eventually.have.property(
-          propertyOf<IClientInformation>('redirectUris'),
-          registerdClient.redirectUris,
-        ),
-        expect(clientInformation2).to.eventually.have.property(
-          propertyOf<IClientInformation>('name'),
-          registerdClient.name,
-        ),
-        expect(clientInformation2).to.eventually.have.property(
-          propertyOf<IClientInformation>('hostUri'),
-          registerdClient2.hostUri,
-        ),
-        expect(clientInformation2).to.eventually.have.property(
-          propertyOf<IClientInformation>('redirectUris'),
-          registerdClient2.redirectUris,
-        ),
+        expect(clientInformation).to.eventually.exist.and.deep.include(registerdClient.toJSON()),
+        expect(clientInformation2).to.eventually.exist.and.deep.include(registerdClient2.toJSON()),
       ]);
     });
 
@@ -284,7 +277,7 @@ describe('Client Management Operations Functionality', async () => {
           propertyOf<IClientInformation>('registrationToken'),
           registerdClient.registrationToken,
         ),
-        expect(updatedClient2).to.eventually.include(updateClientInfo2),
+        expect(updatedClient2).to.eventually.deep.include(updateClientInfo2),
         expect(updatedClient2).to.eventually.have.property(
           propertyOf<IClientInformation>('id'),
           registerdClient2.id,
@@ -297,21 +290,21 @@ describe('Client Management Operations Functionality', async () => {
           propertyOf<IClientInformation>('registrationToken'),
           registerdClient2.registrationToken,
         ),
-        expect(updatedClient2).to.eventually.include(updateClientInfo2),
+        expect(updatedClient2).to.eventually.deep.include(updateClientInfo2),
       ]);
     });
 
-    it('Should not update unexisting client and raise InvalidParameter error', () => {
+    it('Should not update unexisting client and raise ClientNotFound error', () => {
       return Promise.all([
         expect(ManagementController.updateClient('unexistingClientId', updateClientInfo))
-        .to.be.rejectedWith(InvalidParameter),
+        .to.be.rejectedWith(ClientNotFound),
         expect(ManagementController.updateClient('123231123', updateClientInfo2))
-        .to.be.rejectedWith(InvalidParameter),
+        .to.be.rejectedWith(ClientNotFound),
       ]);
     });
 
-    it('Should not update empty client and raise InvalidParameter error', () => {
-      return expect(ManagementController.updateClient('', {})).to.be.rejectedWith(InvalidParameter);
+    it('Should not update empty client and raise ClientNotFound error', () => {
+      return expect(ManagementController.updateClient('', {})).to.be.rejectedWith(ClientNotFound);
     });
 
     it('Should not update existing client with invalid hostUri and raise hostUri validation error',
@@ -373,9 +366,9 @@ describe('Client Management Operations Functionality', async () => {
     it('Should delete existing client', () => {
       return Promise.all([
         expect(ManagementController.deleteClient(deleteClient.id))
-        .to.eventually.exist.and.include(deleteClient),
+        .to.eventually.be.true,
         expect(ManagementController.deleteClient(deleteClient2.id))
-        .to.eventually.exist.and.include(deleteClient2),
+        .to.eventually.be.true,
       ]);
     });
 

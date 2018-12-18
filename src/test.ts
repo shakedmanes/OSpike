@@ -1,6 +1,6 @@
 import * as chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import * as mongoose from 'mongoose';
+import mongoose from 'mongoose';
 import config from './config';
 
 /**
@@ -29,9 +29,9 @@ before(async () => {
 
   try {
     await mongoose.connect(config.mongoUrlTest);
-    console.log('MongoDB Connection Established');
+    console.log('[*] MongoDB Connection Established [*]');
     await deleteCollections();
-    console.log('Deleted all collections found');
+    console.log('[*] Deleted all collections found [*]');
   } catch (err) {
     console.error(err);
     process.exit();

@@ -30,7 +30,7 @@ export const redirectUrisValidator: [(this: IClient, value: string[]) => boolean
     const regexContainingHost = new RegExp(`^${this.hostUri}${redirectUriRegex.source}$`);
 
     let index = 0;
-    let valid = true;
+    let valid = value.length > 0 ? true : false;
 
     // Iterate each redirect uri and check if it contains the host and valid
     while (valid && index < value.length) {

@@ -67,13 +67,22 @@ export class ManagementController {
     const clientDoc = await clientModel.findOne({ id: clientId });
 
     if (clientDoc) {
+
+      // If we update the hostUri, we need to update the current redirectUris with the new hostUri
+      if (clientInformation.hostUri && clientInformation.hostUri !== clientDoc.hostUri) {
+        for (let index = 0; index < clientDoc.redirectUris.length; index += 1) {
+          clientDoc.redirectUris[index] =
+            clientDoc.redirectUris[index].replace(clientDoc.hostUri, clientInformation.hostUri);
+        }
+      }
+
       Object.assign(clientDoc, clientInformation);
       await clientDoc.save();
 
       return clientDoc;
     }
 
-    throw new InvalidParameter('Invalid client id or client registration token given');
+    throw new ClientNotFound('Invalid client id or client registration token given');
   }
 
   /**
@@ -89,6 +98,6 @@ export class ManagementController {
       return true;
     }
 
-    throw new InvalidParameter('Invalid client id or client registration token given');
+    throw new ClientNotFound('Invalid client id or client registration token given');
   }
 }
