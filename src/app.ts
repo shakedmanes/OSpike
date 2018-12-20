@@ -1,7 +1,6 @@
 // app
 
 import * as bodyParser from 'body-parser';
-import * as dotenv from 'dotenv';
 import passport from 'passport';
 import express from 'express';
 import morgan from 'morgan';
@@ -13,9 +12,6 @@ import { default as oauthRouter } from './oauth2/oauth2.routes';
 import { default as wellKnownRouter } from './certs/certs.routes';
 import { errorHandler } from './utils/error.handler';
 import config from './config';
-
-// Gets all configuration properties
-dotenv.config();
 
 const app = express();
 
@@ -43,10 +39,10 @@ app.use(passport.session());
 /* Routes */
 
 // OAuth2 routes
-app.use('/oauth2', oauthRouter);
+app.use(config.OAUTH_ENDPOINT, oauthRouter);
 
 // Well known routes
-app.use('/.well-known', wellKnownRouter);
+app.use(config.WELLKNOWN_ENDPOINT, wellKnownRouter);
 
 // Error handler
 app.use(errorHandler);

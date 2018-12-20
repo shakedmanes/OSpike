@@ -4,19 +4,22 @@
   "description": "An OAuth2 authorization server supporting OpenID Connect",
   "main": "app.js",
   "scripts": {
-    "init": "npm run build && npm run generate-certs && npm run generate-env && npm run generate-jwks",
+    "init": "npm run build && npm run generate-certs && npm run generate-env-dev && npm run generate-jwks",
     "start": "npm run build && npm run serve",
     "start-watch": "npm run build && nodemon -e ts -w ./src -i ./src/**/*.spec.ts -x npm run watch-serve",
     "serve": "node dist/server.js",
     "watch-serve": "ts-node --inspect src/server.ts",
-    "build": "npm run copy-files && tsc",
+    "build": "npm run generate-env-dev && npm run copy-files && tsc",
+    "build-prod": "npm run generate-env-prod && npm run copy-files && tsc",
     "build-watch": "tsc -w",
     "tslint-config": "tslint -c tslint.json -p tsconfig.json",
     "copy-files": "node ./scripts/copy_files.js",
     "generate-certs": "node ./scripts/generate_certs.js",
-    "generate-env": "node ./scripts/generate_env.js",
+    "generate-env-dev" : "node ./scripts/generate_env.js -env dev -port 1337",
+    "generate-env-test": "node ./scripts/generate_env.js -env test -port 1337",
+    "generate-env-prod": "node ./scripts/generate_env.js -env prod -port 443",
     "generate-jwks": "node ./scripts/generate_jwks.js",
-    "test": "npm run build && mocha dist/test.js dist/**/*.spec.js -t 3000"
+    "test": "npm run generate-env-test && npm run build && mocha dist/test.js dist/**/*.spec.js -t 15000 -r dotenv/config"
   },
   "repository": {
     "type": "git",
@@ -39,8 +42,7 @@
   "bin": {
     "tslint": "./node_modules/.bin/tslint",
     "tsc": "./node_moduels/.bin/tsc",
-    "nodemon": "./node_modules/.bin/nodemon",
-    "cpx": "./node_modules/.bin/cpx"
+    "nodemon": "./node_modules/.bin/nodemon"
   },
   "dependencies": {
     "bcrypt": "^3.0.0",
@@ -86,7 +88,6 @@
     "@types/supertest": "^2.0.7",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
-    "cpx": "^1.5.0",
     "mocha": "^5.2.0",
     "node-jose": "^1.0.0",
     "nodemon": "^1.18.3",

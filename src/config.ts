@@ -2,7 +2,15 @@
 
 import { join } from 'path';
 
-const config = {
+const devConfigProperties = {
+  mongoUrl: 'mongodb://admin:Aa123456@ds125352.mlab.com:25352/authorization_server',
+};
+
+const testConfigProperties = {
+  mongoUrl: 'mongodb://admin:Aa123456@ds259742.mlab.com:59742/authorization_server_test',
+};
+
+let config = {
   // Expiration Times - format in seconds for mongoose TTL expiration field
   AUTH_CODE_EXPIRATION_TIME: 120, // 2 Minutes
   ACCESS_TOKEN_EXPIRATION_TIME: 180, // 3 Minutes
@@ -22,6 +30,10 @@ const config = {
   CLIENT_MANAGER_AUTHORIZATION_HEADER: 'authorization-registrer',
   CLIENT_MANAGER_PASSPORT_STRATEGY: 'client_manager_strategy', // Only client manager authentication
   CLIENT_MANAGER_PASSPORT_MANAGEMENT_STRATEGY: 'client_manager_management_strategy',
+
+  // Routes Configuration
+  OAUTH_ENDPOINT: '/oauth2',
+  WELLKNOWN_ENDPOINT: '/.well-known',
 
   // Bcrypt
   BCRYPT_ROUNDS: 8,
@@ -43,5 +55,17 @@ const config = {
   jwtAlgorithm: 'RS256',
   jwksPath: join(__dirname, 'certs/files/jwks.json'),
 };
+
+switch (process.env.NODE_ENV) {
+  case 'dev':
+    config = { ...config, ...devConfigProperties };
+    break;
+  case 'test':
+    config = { ...config, ...testConfigProperties };
+    break;
+
+  default:
+    config = { ...config, ...devConfigProperties };
+}
 
 export default config;
