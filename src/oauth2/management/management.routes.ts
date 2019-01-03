@@ -22,6 +22,10 @@ const authenticateManagementMiddleware = passport.authenticate(
   { session: false, failWithError: true, failureMessage: true },
 );
 
+export const errorMessages = {
+  MISSING_CLIENT_INFORMATION: 'Client information parameter is missing',
+};
+
 export const setManagementRoutes = (router: Router) => {
   // Register client endpoint
   router.post(
@@ -37,7 +41,7 @@ export const setManagementRoutes = (router: Router) => {
         return res.status(201).send(clientInformation);
       }
 
-      throw new InvalidParameter('Client information parameter is missing');
+      throw new InvalidParameter(errorMessages.MISSING_CLIENT_INFORMATION);
     },
   ));
 

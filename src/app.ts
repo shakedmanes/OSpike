@@ -15,6 +15,9 @@ import config from './config';
 
 const app = express();
 
+// Morgan formatting types for each environment
+const morganFormatting: any = { prod: 'common', dev: 'dev', test: 'tiny' };
+
 // Set ejs as view engine for server side rendering
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '/views'));
@@ -23,7 +26,7 @@ app.set('views', path.join(__dirname, '/views'));
 app.set('port', process.env.PORT);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(morgan(process.env.NODE_ENV || 'dev'));
+app.use(morgan(morganFormatting[process.env.NODE_ENV || 'dev']));
 
 // Use express session support since OAuth2orize requires it
 app.use(session({

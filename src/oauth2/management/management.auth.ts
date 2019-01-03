@@ -8,6 +8,14 @@ import { IClient } from '../../client/client.interface';
 import config from '../../config';
 
 // TODO: Return somehow the message of the failure
+export const authFailMessages = {
+  CLIENT_MANAGER_TOKEN_MISSING: 'Client manager authorization header is missing',
+  INSUFFICIENT_CLIENT_MANAGER_TOKEN: 'Client does not have permissions to manage clients',
+  INVALID_CLIENT_MANAGER_TOKEN: 'Incorrect client manager credentials given',
+  REGISTRATION_TOKEN_MISSING: 'Registration token parameter is missing',
+  INVALID_REG_TOKEN_OR_CLIENT_ID: `Registration token or client id parameter isn't valid`,
+
+};
 
 export interface IClientManagemementStrategyOptions {
   includeRegistrationToken: boolean;
@@ -37,7 +45,7 @@ export class ClientManagementAuthenticationStrategy
 
     // If missing client manager authorization header
     if (!clientManagerToken) {
-      return this.fail({ message: 'Client manager authorization header is missing' }, 400);
+      return this.fail({ message: authFailMessages.CLIENT_MANAGER_TOKEN_MISSING }, 400);
     }
 
     // Checking the client manager token
@@ -53,7 +61,7 @@ export class ClientManagementAuthenticationStrategy
       if (this.includeRegistrationToken) {
 
         if (!registrationToken) {
-          return this.fail({ message: 'Registration token parameter is missing' }, 400);
+          return this.fail({ message: authFailMessages.REGISTRATION_TOKEN_MISSING }, 400);
         }
 
         const clientDoc = await clientModel.findOne({ registrationToken }).lean();
@@ -63,7 +71,7 @@ export class ClientManagementAuthenticationStrategy
           return this.success(<IClient>accessTokenDoc.clientId);
         }
 
-        return this.fail({ message: `Registration token or client id parameter isn't valid` }, 400);
+        return this.fail({ message: authFailMessages.INVALID_REG_TOKEN_OR_CLIENT_ID }, 400);
       }
 
       return this.success(<IClient>accessTokenDoc.clientId);
@@ -71,9 +79,9 @@ export class ClientManagementAuthenticationStrategy
 
     if (accessTokenDoc && (<IClient>accessTokenDoc.clientId)) {
       // Means that the client doesn't have the permissions to manage clients
-      return this.fail({ message: 'Client does not have permissions to manage clients' }, 403);
+      return this.fail({ message: authFailMessages.INSUFFICIENT_CLIENT_MANAGER_TOKEN }, 403);
     }
 
-    return this.fail({ message: 'Incorrect client manager credentials given' }, 401);
+    return this.fail({ message: authFailMessages.INVALID_CLIENT_MANAGER_TOKEN }, 401);
   }
 }

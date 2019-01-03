@@ -4,10 +4,12 @@ import { expect } from 'chai';
 import * as mongoose from 'mongoose';
 import { default as request }  from 'supertest';
 import { IClientInformation, IClientBasicInformation } from './management.interface';
+import { authFailMessages } from './management.auth';
+import { errorMessages } from './management.routes';
 import clientModel from '../../client/client.model';
-import { IAccessToken } from '../../accessToken/accessToken.interface';
 import accessTokenModel from '../../accessToken/accessToken.model';
-import { deleteCollections, propertyOf } from '../../test';
+import { deleteCollections, propertyOf, dismantleNestedProperties } from '../../test';
+import { InvalidParameter } from '../../utils/error';
 import app from '../../app';
 import config from '../../config';
 
@@ -21,6 +23,18 @@ describe.only('Client Management Routes Functionality', () => {
     redirectUris: ['https://test.com/callback'],
   };
 
+  const validClientInformation2: IClientBasicInformation = {
+    name: 'TestNameShouldNotWork',
+    hostUri: 'https://testshouldnotwork.com',
+    redirectUris: ['https://testshouldnotwork.com/callback'],
+  };
+
+  const validClientInformation3: IClientBasicInformation = {
+    name: 'TestNameShouldNotWork2',
+    hostUri: 'https://testshouldnotwork2.com',
+    redirectUris: ['https://testshouldnotwork2.com/callback'],
+  };
+
   let clientRegistrer = new clientModel({
     id: 'abcd1234567',
     secret: 'clientRegistrerSecret',
@@ -31,9 +45,6 @@ describe.only('Client Management Routes Functionality', () => {
     scopes: [config.CLIENT_MANAGER_SCOPE],
   });
 
-  // Will be created in before hook
-  let clientRegistrerAccessToken: any = null;
-
   let notClientRegistrer = new clientModel({
     id: 'notclientRegistrer123',
     secret: 'notClientRegistrer123Secret',
@@ -41,8 +52,22 @@ describe.only('Client Management Routes Functionality', () => {
     name: 'notClientRegistrer',
     hostUri: 'https://verynotclient.register.com',
     redirectUris: ['https://verynotclient.register.com/callback'],
-    scopes: [config.CLIENT_MANAGER_SCOPE],
+    scopes: ['blabla'],
   });
+
+  let registeredClient = new clientModel({
+    id: 'registeredClientId',
+    secret: 'registeredClientSecret',
+    registrationToken: 'registeredClientRegistrationTokenBlaBla',
+    name: 'registeredClient',
+    hostUri: 'https://registeredClient.register.com',
+    redirectUris: ['https://registeredClient.register.com/callback'],
+    scopes: ['something'],
+  });
+
+  // Will be created in before hook
+  let clientRegistrerAccessToken: any = null;
+  let notClientRegistrerAccessToken: any = null;
 
   before(async () => {
     // Delete all collections before test suite
@@ -59,6 +84,17 @@ describe.only('Client Management Routes Functionality', () => {
       grantType: 'client_credentials',
       expiresAt: 999999999999,
     }).save();
+
+    notClientRegistrerAccessToken = await new accessTokenModel({
+      clientId: notClientRegistrer._id,
+      audience: config.issuerHostUri,
+      value: '987654321',
+      scopes: ['blabla'],
+      grantType: 'client_credentials',
+      expiresAt: 999999999999,
+    }).save();
+
+    registeredClient = await registeredClient.save();
   });
 
   after(async () => {
@@ -67,36 +103,76 @@ describe.only('Client Management Routes Functionality', () => {
 
   describe.only('(Register Client) - /register', () => {
 
-    it.only('Should register client by client manager that does have permissions', () => {
-      return expect(
-        request(app)
+    it.only('Should register client by client manager that does have permissions', (done) => {
+
+      request(app)
         .post(registerEndpoint)
         .send({ clientInformation: validClientInformation })
-        .set(config.CLIENT_MANAGER_AUTHORIZATION_HEADER, clientRegistrerAccessToken.value),
-      ).to.eventually.exist.and.deep.include({ status: 201, body: { ...validClientInformation } })
-       .and.have.keys(
-         `body.${propertyOf<IClientInformation>('id')}`,
-         `body.${propertyOf<IClientInformation>('secret')}`,
-         `body.${propertyOf<IClientInformation>('registrationToken')}`,
-       );
+        .set(config.CLIENT_MANAGER_AUTHORIZATION_HEADER, clientRegistrerAccessToken.value)
+        .expect((res) => {
+
+          expect(res).to.nested.include({
+            status: 201,
+            ...dismantleNestedProperties('body', validClientInformation),
+          });
+          expect(res).to.have.nested.property(`body.${propertyOf<IClientInformation>('id')}`);
+          expect(res).to.have.nested.property(`body.${propertyOf<IClientInformation>('secret')}`);
+          expect(res).to.have.nested.property(
+            `body.${propertyOf<IClientInformation>('registrationToken')}`,
+          );
+
+        }).end(done);
     });
 
-    it('Should not register client by client manager that doesn\'t have permissions', () => {
-
+    it('Should not register client without client manager access token header', (done) => {
+      request(app)
+        .post(registerEndpoint)
+        .send({ clientInformation: validClientInformation2 })
+        .expect(400, { message: authFailMessages.CLIENT_MANAGER_TOKEN_MISSING })
+        .end(done);
     });
 
-    it('Should not register client without data by client manager that does have permissions',
-       () => {
+    it(
+      'Should not register client by client manager that doesn\'t have permissions',
+      (done) => {
+        request(app)
+          .post(registerEndpoint)
+          .send({ clientInformation: validClientInformation3 })
+          .set(config.CLIENT_MANAGER_AUTHORIZATION_HEADER, notClientRegistrerAccessToken.value)
+          .expect(403, { message: authFailMessages.INSUFFICIENT_CLIENT_MANAGER_TOKEN })
+          .end(done);
+      },
+    );
 
-       },
+    it(
+      'Should not register client without data by client manager that does have permissions',
+      (done) => {
+        request(app)
+          .post(registerEndpoint)
+          .set(config.CLIENT_MANAGER_AUTHORIZATION_HEADER, clientRegistrerAccessToken.value)
+          .expect(
+            new InvalidParameter().status,
+            { message: errorMessages.MISSING_CLIENT_INFORMATION },
+          ).end(done);
+      },
      );
   });
 
   describe('(Read Client) - /register/:id', () => {
-    it('Should read existing client information by client manager that does have permissions',
-       () => {
-
-       },
+    it.only(
+      'Should read existing client information by client manager that does have permissions',
+      (done) => {
+        request(app)
+          .get(`${registerEndpoint}/${registeredClient.id}`)
+          .set(config.CLIENT_MANAGER_AUTHORIZATION_HEADER, clientRegistrerAccessToken.value)
+          .set('Authorization', registeredClient.registrationToken)
+          .expect((res) => {
+            expect(res).to.nested.include({
+              status: 200,
+              ...dismantleNestedProperties('body', registeredClient.toJSON()),
+            });
+          }).end(done);
+      },
     );
 
     it(`Should not read existing client information by

@@ -17,6 +17,30 @@ export const deleteCollections = async () => {
 };
 
 /**
+ * Dismantle object into nested properties for chai nested assertion
+ * @param prop - Property name to apply properties on
+ * @param obj - Object to apply properties from
+ */
+export const dismantleNestedProperties = (prop: string, obj: any) => {
+
+  const destructiveObj: any = {};
+
+  for (const key of Object.keys(obj)) {
+
+    if (Array.isArray(obj[key])) {
+      for (let index = 0; index < obj[key].length; index += 1) {
+        destructiveObj[`${prop}.${key}[${index}]`] = obj[key][index];
+      }
+
+    } else {
+      destructiveObj[`${prop}.${key}`] = obj[key];
+    }
+  }
+
+  return destructiveObj;
+};
+
+/**
  * Gets property name from interface safely with type checking.
  * @param name - name of the property
  */
