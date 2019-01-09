@@ -24,6 +24,9 @@ const authenticateManagementMiddleware = passport.authenticate(
 
 export const errorMessages = {
   MISSING_CLIENT_INFORMATION: 'Client information parameter is missing',
+  MISSING_CLIENT_ID: 'Client id request parameter is missing',
+  MISSING_CLIENT_ID_OR_INFORMATION:
+    `Client id request parameter or client information parameter is missing`,
 };
 
 export const setManagementRoutes = (router: Router) => {
@@ -58,7 +61,7 @@ export const setManagementRoutes = (router: Router) => {
         return res.status(200).send(clientInformation);
       }
 
-      throw new InvalidParameter('Client id request parameter is missing');
+      throw new InvalidParameter(errorMessages.MISSING_CLIENT_ID);
     },
   ));
 
@@ -76,8 +79,7 @@ export const setManagementRoutes = (router: Router) => {
         return res.status(200).send(clientInformation);
       }
 
-      throw new InvalidParameter(`Client id request parameter or
-                                  client information parameter is missing`);
+      throw new InvalidParameter(errorMessages.MISSING_CLIENT_ID_OR_INFORMATION);
     },
   ));
 
@@ -99,7 +101,7 @@ export const setManagementRoutes = (router: Router) => {
         return res.status(500).send('Internal Server Error');
       }
 
-      throw new InvalidParameter('Client id request parameter is missing');
+      throw new InvalidParameter(errorMessages.MISSING_CLIENT_ID);
     },
   ));
 };

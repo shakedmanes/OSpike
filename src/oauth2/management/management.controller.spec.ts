@@ -236,8 +236,8 @@ describe('Client Management Operations Functionality', async () => {
       const clientInformation2 = ManagementController.readClient(registerdClient2.id);
 
       return Promise.all([
-        expect(clientInformation).to.eventually.exist.and.deep.equal(registerdClient.toJSON()),
-        expect(clientInformation2).to.eventually.exist.and.deep.equal(registerdClient2.toJSON()),
+        expect(clientInformation).to.eventually.exist.and.deep.include(registerdClient.toJSON()),
+        expect(clientInformation2).to.eventually.exist.and.deep.include(registerdClient2.toJSON()),
       ]);
     });
 
