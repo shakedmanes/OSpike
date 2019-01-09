@@ -56,6 +56,9 @@ let config = {
   jwksPath: join(__dirname, 'certs/files/jwks.json'),
 };
 
+console.log('Entered config');
+console.log(process.env.NODE_ENV);
+
 switch (process.env.NODE_ENV) {
   case 'dev':
     config = { ...config, ...devConfigProperties };

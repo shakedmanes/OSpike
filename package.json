@@ -7,7 +7,7 @@
     "init": "npm run build && npm run generate-certs && npm run generate-env-dev && npm run generate-jwks",
     "start": "npm run build && npm run serve",
     "start-watch": "npm run build && nodemon -e ts -w ./src -i ./src/**/*.spec.ts -x npm run watch-serve",
-    "serve": "node dist/server.js",
+    "serve": "node -r dotenv/config dist/server.js",
     "watch-serve": "ts-node --inspect src/server.ts",
     "build": "npm run generate-env-dev && npm run copy-files && tsc",
     "build-test": "npm run generate-env-test && npm run copy-files && tsc",
