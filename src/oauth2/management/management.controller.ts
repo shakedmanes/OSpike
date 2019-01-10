@@ -8,7 +8,6 @@ import {
 import { IClientBasicInformation, IClientInformation } from './management.interface';
 import clientModel from '../../client/client.model';
 import { ClientNotFound } from './management.error';
-import { InvalidParameter } from '../../utils/error';
 
 // TODO: Add error handling
 // TODO: aggregate mongoose model properties

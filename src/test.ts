@@ -52,7 +52,7 @@ before(async () => {
   chai.use(chaiAsPromised);
 
   try {
-    await mongoose.connect(config.mongoUrlTest);
+    await mongoose.connect(config.mongoUrl);
     console.log('[*] MongoDB Connection Established [*]');
     await deleteCollections();
     console.log('[*] Deleted all collections found [*]');
