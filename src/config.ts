@@ -2,15 +2,7 @@
 
 import { join } from 'path';
 
-const devConfigProperties = {
-  mongoUrl: 'mongodb://admin:Aa123456@ds125352.mlab.com:25352/authorization_server',
-};
-
-const testConfigProperties = {
-  mongoUrl: 'mongodb://admin:Aa123456@ds259742.mlab.com:59742/authorization_server_test',
-};
-
-let config = {
+const config = {
   // Expiration Times - format in seconds for mongoose TTL expiration field
   AUTH_CODE_EXPIRATION_TIME: 120, // 2 Minutes
   ACCESS_TOKEN_EXPIRATION_TIME: 180, // 3 Minutes
@@ -42,8 +34,8 @@ let config = {
   SESSION_SECRET: 'bla_bla_secret_session_dont_tell_anyone',
 
   // MongoDB Url
-  mongoUrl: 'mongodb://admin:Aa123456@ds125352.mlab.com:25352/authorization_server',
-  mongoUrlTest: 'mongodb://admin:Aa123456@ds259742.mlab.com:59742/authorization_server_test',
+  mongoUrl:
+    `mongodb://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.MONGO_URL}`,
 
   // SSL Configuration
   privateKeyPath: join(__dirname, 'certs/files/privatekey.pem'),
@@ -51,24 +43,9 @@ let config = {
   certificatePath: join(__dirname, 'certs/files/certificate.pem'),
 
   // JWT Configuration
-  issuerHostUri: 'https://localhost:1337',
+  issuerHostUri: `https://${process.env.HOSTNAME}:${process.env.PORT}`,
   jwtAlgorithm: 'RS256',
   jwksPath: join(__dirname, 'certs/files/jwks.json'),
 };
-
-console.log('Entered config');
-console.log(process.env.NODE_ENV);
-
-switch (process.env.NODE_ENV) {
-  case 'dev':
-    config = { ...config, ...devConfigProperties };
-    break;
-  case 'test':
-    config = { ...config, ...testConfigProperties };
-    break;
-
-  default:
-    config = { ...config, ...devConfigProperties };
-}
 
 export default config;
