@@ -1,7 +1,8 @@
 // app
 
 import * as bodyParser from 'body-parser';
-import * as dotenv from 'dotenv';
+// import dotenv from 'dotenv';
+// dotenv.config();
 import passport from 'passport';
 import express from 'express';
 import morgan from 'morgan';
@@ -14,10 +15,10 @@ import { default as wellKnownRouter } from './certs/certs.routes';
 import { errorHandler } from './utils/error.handler';
 import config from './config';
 
-// Gets all configuration properties
-dotenv.config();
-
 const app = express();
+
+// Morgan formatting types for each environment
+const morganFormatting: any = { prod: 'common', dev: 'dev', test: 'tiny' };
 
 // Set ejs as view engine for server side rendering
 app.set('view engine', 'ejs');
@@ -27,7 +28,7 @@ app.set('views', path.join(__dirname, '/views'));
 app.set('port', process.env.PORT);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(morgan(process.env.NODE_ENV || 'dev'));
+app.use(morgan(morganFormatting[process.env.NODE_ENV || 'dev']));
 
 // Use express session support since OAuth2orize requires it
 app.use(session({
@@ -43,10 +44,10 @@ app.use(passport.session());
 /* Routes */
 
 // OAuth2 routes
-app.use('/oauth2', oauthRouter);
+app.use(config.OAUTH_ENDPOINT, oauthRouter);
 
 // Well known routes
-app.use('/.well-known', wellKnownRouter);
+app.use(config.WELLKNOWN_ENDPOINT, wellKnownRouter);
 
 // Error handler
 app.use(errorHandler);
