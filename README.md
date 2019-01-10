@@ -14,9 +14,13 @@ After that, in `package.json` file, you'll find 3 `npm` scripts named: `generate
 Adjust your settings in each one of them for generating appropriate `.env` file for the project.
 ## Settings:
 > `-port`       The port of the server. e.g. `-port 1337`
+>
 > `-hostname`   The hostname of the project url. e.g. `-hostname google.com`
+>
 > `-mongoUrl`   The url of the mongo db of the project. e.g. `-mongoUrl ds11232.mlab.com:12345/db_bla_bla`
+>
 > `-username`   The username of the db. e.g. `-username admin`
+>
 > `-password`   The password of the db user. e.g. `-password 123456`
 
 And just run:
