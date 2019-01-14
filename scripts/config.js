@@ -15,6 +15,10 @@ const config = {
   get JWKS_PATH() { return pathJoin(this.CERTIFICATES_PATH, 'jwks.json') },
   JWK_ALGORITHM: 'RSA256',
   JWK_USE: 'sig',
+
+  // Scripts names contains credentials and credentials names
+  scriptsContainsCredentials: ['generate-env-dev', 'generate-env-test', 'generate-env-prod'],
+  credentailsToDelete: { '-mongoUrl': 'MONGO_URL_HERE', '-username': 'DB_USERNAME_HERE', '-password': 'DB_PASSWORD_HERE' },
 }
 
 module.exports = config;
