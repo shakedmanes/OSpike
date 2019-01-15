@@ -1,8 +1,6 @@
 // app
 
 import * as bodyParser from 'body-parser';
-// import dotenv from 'dotenv';
-// dotenv.config();
 import passport from 'passport';
 import express from 'express';
 import morgan from 'morgan';

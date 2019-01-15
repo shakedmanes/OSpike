@@ -20,6 +20,7 @@ import { validatePasswordHash } from '../utils/hashUtils';
 import { isScopeEquals } from '../utils/isEqual';
 import config from '../config';
 import { BadRequest } from '../utils/error';
+import { MongoError } from 'mongodb';
 
 // TODO: create specified config files with grants types
 // TODO: create generated session key for each of the requests
@@ -148,7 +149,7 @@ server.exchange(oauth2orize.exchange.code(
         }).save();
 
         const additionalParams = {
-          expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+          expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME,
         };
         done(null, accessToken.value, refreshToken.value, additionalParams);
       } catch (err) {
@@ -207,7 +208,7 @@ server.exchange(oauth2orize.exchange.password(
         }).save();
 
         const additionalParams = {
-          expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+          expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME,
         };
         return done(null, accessToken.value, refreshToken.value, additionalParams);
       } catch (err) {
@@ -247,6 +248,33 @@ server.exchange(oauth2orize.exchange.clientCredentials(
     }
 
     try {
+      let isDeleted = false;
+
+      const foundToken = await accessTokenModel.findOne({
+        clientId: client._id,
+        userId : { $exists: false },
+        audience: body.audience,
+      });
+
+      if (foundToken && foundToken.expireAt.getTime() +
+         (config.ACCESS_TOKEN_EXPIRATION_TIME * 1000) <= Date.now()) {
+        try {
+          await foundToken.remove();
+        } catch (err) {
+          // In case the token already deleted in the
+          // spread of milliseconds from the request, to avoid the request from crashing
+        }
+        isDeleted = true;
+      }
+
+      // TODO: Need to refactor that - create specific error type for that
+      if (foundToken && !isDeleted) {
+        const mongoError =
+         new MongoError(`There's already token for the client and the user and the audience.`);
+        mongoError.code = 11000;
+        return done(mongoError);
+      }
+
       const accessToken = await new accessTokenModel({
         value: OAuth2Utils.createJWTAccessToken({
           aud: body.audience,
@@ -262,7 +290,7 @@ server.exchange(oauth2orize.exchange.clientCredentials(
       // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
       // Refresh token SHOULD NOT be included in client credentials
       const additionalParams = {
-        expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+        expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME,
       };
       return done(null, accessToken.value, undefined, additionalParams);
 
@@ -317,7 +345,7 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
       // Should consider security-wise returning a new refresh token with the response.
       // Maybe in future releases refresh token will be omitted.
       const additionalParams = {
-        expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+        expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME,
       };
       return done(null, accessToken.value, newRefreshToken.value, additionalParams);
     } catch (err) {
