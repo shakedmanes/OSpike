@@ -20,7 +20,6 @@ import { validatePasswordHash } from '../utils/hashUtils';
 import { isScopeEquals } from '../utils/isEqual';
 import config from '../config';
 import { BadRequest } from '../utils/error';
-import { MongoError } from 'mongodb';
 
 // TODO: create specified config files with grants types
 // TODO: create generated session key for each of the requests
@@ -248,32 +247,6 @@ server.exchange(oauth2orize.exchange.clientCredentials(
     }
 
     try {
-      let isDeleted = false;
-
-      const foundToken = await accessTokenModel.findOne({
-        clientId: client._id,
-        userId : { $exists: false },
-        audience: body.audience,
-      });
-
-      if (foundToken && foundToken.expireAt.getTime() +
-         (config.ACCESS_TOKEN_EXPIRATION_TIME * 1000) <= Date.now()) {
-        try {
-          await foundToken.remove();
-        } catch (err) {
-          // In case the token already deleted in the
-          // spread of milliseconds from the request, to avoid the request from crashing
-        }
-        isDeleted = true;
-      }
-
-      // TODO: Need to refactor that - create specific error type for that
-      if (foundToken && !isDeleted) {
-        const mongoError =
-         new MongoError(`There's already token for the client and the user and the audience.`);
-        mongoError.code = 11000;
-        return done(mongoError);
-      }
 
       const accessToken = await new accessTokenModel({
         value: OAuth2Utils.createJWTAccessToken({
