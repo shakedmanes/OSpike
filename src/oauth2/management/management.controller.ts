@@ -30,6 +30,11 @@ export class ManagementController {
       secret: clientSecretValueGenerator(),
       registrationToken: registrationTokenValueGenerator(),
       ...clientInformation,
+      hostUri: clientInformation.hostUri.toLowerCase(), // Override the hostUri to lowercases
+      redirectUris:
+        clientInformation.redirectUris.map(
+          val => val.replace(clientInformation.hostUri, clientInformation.hostUri.toLowerCase()),
+        ),
     }).save();
 
     return clientDoc;
@@ -69,6 +74,7 @@ export class ManagementController {
 
       // If we update the hostUri, we need to update the current redirectUris with the new hostUri
       if (clientInformation.hostUri && clientInformation.hostUri !== clientDoc.hostUri) {
+        clientInformation.hostUri = clientInformation.hostUri.toLowerCase();
         for (let index = 0; index < clientDoc.redirectUris.length; index += 1) {
           clientDoc.redirectUris[index] =
             clientDoc.redirectUris[index].replace(clientDoc.hostUri, clientInformation.hostUri);
