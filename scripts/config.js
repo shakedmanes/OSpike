@@ -10,7 +10,9 @@ const config = {
 
   // OpenSSL and Certificates configurations
   CERTIFICATES_PATH: 'src/certs/files',
-  OPENSSL_PATH: 'C:\\"Program Files"\\Git\\mingw64\\bin\\openssl.exe',
+  CERTIFICATE_FILE_NAME: 'certificate.pem',
+  PRIVATE_KEY_FILE_NAME: 'privatekey.pem',
+  PUBLIC_KEY_FILE_NAME: 'publickey.pem',
   get PUBLIC_KEY_PATH() { return pathJoin(this.CERTIFICATES_PATH, 'publickey.pem') },
   get JWKS_PATH() { return pathJoin(this.CERTIFICATES_PATH, 'jwks.json') },
   JWK_ALGORITHM: 'RSA256',
