@@ -7,7 +7,6 @@ const config = {
   AUTH_CODE_EXPIRATION_TIME: 120, // 2 Minutes
   ACCESS_TOKEN_EXPIRATION_TIME: 180, // 3 Minutes
   REFRESH_TOKEN_EXPIRATION_TIME: 180, // 3 Minutes
-  QUICK_FIX_DELAY: 30, // Delay in delete access token execution
 
   // Lengths
   AUTH_CODE_LENGTH: 50,
@@ -23,6 +22,10 @@ const config = {
   CLIENT_MANAGER_PASSPORT_STRATEGY: 'client_manager_strategy', // Only client manager authentication
   CLIENT_MANAGER_PASSPORT_MANAGEMENT_STRATEGY: 'client_manager_management_strategy',
 
+  // Routes Configuration
+  OAUTH_ENDPOINT: '/oauth2',
+  WELLKNOWN_ENDPOINT: '/.well-known',
+
   // Bcrypt
   BCRYPT_ROUNDS: 8,
 
@@ -30,7 +33,8 @@ const config = {
   SESSION_SECRET: 'bla_bla_secret_session_dont_tell_anyone',
 
   // MongoDB Url
-  mongoUrl: 'mongodb://admin:Aa123456@ds125352.mlab.com:25352/authorization_server',
+  mongoUrl:
+    `mongodb://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.MONGO_URL}`,
 
   // SSL Configuration
   privateKeyPath: join(__dirname, 'certs/files/privatekey.pem'),
@@ -38,7 +42,7 @@ const config = {
   certificatePath: join(__dirname, 'certs/files/certificate.pem'),
 
   // JWT Configuration
-  issuerHostUri: 'https://localhost:1337',
+  issuerHostUri: `https://${process.env.HOSTNAME}:${process.env.PORT}`,
   jwtAlgorithm: 'RS256',
   jwksPath: join(__dirname, 'certs/files/jwks.json'),
 };
