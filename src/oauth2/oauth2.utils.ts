@@ -56,7 +56,7 @@ export class OAuth2Utils {
       OAuth2Utils.privateKey,
       {
         issuer: config.issuerHostUri,
-        expiresIn: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+        expiresIn: config.ACCESS_TOKEN_EXPIRATION_TIME,
         algorithm: config.jwtAlgorithm,
       },
     );

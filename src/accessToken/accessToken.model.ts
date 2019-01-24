@@ -1,6 +1,6 @@
 // accessToken.model
 
-import { Schema, model } from 'mongoose';
+import { Schema, model, HookNextFunction } from 'mongoose';
 import { collectionName as ClientModelName } from '../client/client.interface';
 import { collectionName as UserModelName } from '../user/user.interface';
 import { IAccessToken, collectionName } from './accessToken.interface';
@@ -11,53 +11,82 @@ import config from '../config';
 // TODO: Define scope model and scope types
 // TODO: Define specific grant types available for token
 
-const accessTokenSchema = new Schema({
-  clientId: {
-    type: String,
-    ref: ClientModelName,
-    required: true,
-    validate: clientRefValidator,
+const accessTokenSchema = new Schema(
+  {
+    clientId: {
+      type: String,
+      ref: ClientModelName,
+      required: true,
+      validate: clientRefValidator,
+    },
+    userId: {
+      type: String,
+      ref: UserModelName,
+      // required: true,
+      validate: userRefValidator,
+    },
+    audience: {
+      type: String,
+      required: true,
+    },
+    value: {
+      type: String,
+      unique: true,
+      required: true,
+    },
+    scopes: {
+      type: [String],
+      required: true,
+    },
+    grantType: {
+      type: String,
+      required: true,
+    },
+    expireAt: { // Expiration time of token, the token will be deleted from db by the expires value.
+      type: Date,
+      default: Date.now,
+      expires: config.ACCESS_TOKEN_EXPIRATION_TIME,
+    },
   },
-  userId: {
-    type: String,
-    ref: UserModelName,
-    // required: true,
-    validate: userRefValidator,
+  {
+    toObject: { virtuals: true },
+    toJSON: { virtuals: true },
   },
-  audience: {
-    type: String,
-    required: true,
-  },
-  value: {
-    type: String,
-    unique: true,
-    required: true,
-  },
-  scopes: {
-    type: [String],
-    required: true,
-  },
-  grantType: {
-    type: String,
-    required: true,
-  },
-  expireAt: { // Expiration time of token, the token will be deleted from db by the expires value.
-    type: Date,
-    default: Date.now,
-    expires: config.ACCESS_TOKEN_EXPIRATION_TIME,
-  },
-});
+);
 
-// Ensures there's only one token for user in specific client app
-accessTokenSchema.index({ clientId: 1, userId: 1 }, { unique: true });
+// Ensures there's only one token for user in specific client app and audience
+accessTokenSchema.index({ clientId: 1, userId: 1, audience: 1 }, { unique: true });
+
+accessTokenSchema.pre<IAccessToken>('save', async function (this: IAccessToken, next) {
+  const foundToken = await accessTokenModel.findOne({
+    clientId: this.clientId,
+    ...(this.userId ? { userId: this.userId } : { userId : { $exists: false } }),
+    audience: this.audience,
+  });
+
+  if (foundToken &&
+     (foundToken.expireAt.getTime() + (config.ACCESS_TOKEN_EXPIRATION_TIME * 1000)) <= Date.now()) {
+    await foundToken.remove();
+  }
+
+  next();
+});
 
 // Construct better error handling for errors from mongo server
 accessTokenSchema.post('save', (err, doc, next) => {
   if (err.name === 'MongoError' && err.code === 11000) {
-    err.message = `There's already token for the client and the user.`;
+    err.message = `There's already token for the client and the user and the audience.`;
   }
 
   next(err);
+});
+
+// Virtual field for audience client validations and population
+accessTokenSchema.virtual('audienceClient', {
+  ref: ClientModelName,
+  localField: 'audience',
+  foreignField: 'hostUri',
+  justOne: true,
 });
 
 /**

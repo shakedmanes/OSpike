@@ -148,7 +148,7 @@ server.exchange(oauth2orize.exchange.code(
         }).save();
 
         const additionalParams = {
-          expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+          expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME,
         };
         done(null, accessToken.value, refreshToken.value, additionalParams);
       } catch (err) {
@@ -207,7 +207,7 @@ server.exchange(oauth2orize.exchange.password(
         }).save();
 
         const additionalParams = {
-          expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+          expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME,
         };
         return done(null, accessToken.value, refreshToken.value, additionalParams);
       } catch (err) {
@@ -232,11 +232,14 @@ server.exchange(oauth2orize.exchange.clientCredentials(
   {},
   async (client: IClient, scope, body, done) => {
 
+    // TODO: Uncomment the following code when scopes feature is ready.
+
     // If the client doesn't have actually scopes to grant authorization on
-    if (client.scopes.length === 0) {
-      const errorMessage = `Client doesn't support client_credentials due incomplete scopes value`;
-      return done(new BadRequest(errorMessage));
-    }
+    // if (client.scopes.length === 0) {
+    // tslint:disable-next-line:max-line-length
+    //   const errorMessage = `Client doesn't support client_credentials due incomplete scopes value`;
+    //   return done(new BadRequest(errorMessage));
+    // }
 
     // Check if audience specified
     if (!body.audience) {
@@ -244,6 +247,7 @@ server.exchange(oauth2orize.exchange.clientCredentials(
     }
 
     try {
+
       const accessToken = await new accessTokenModel({
         value: OAuth2Utils.createJWTAccessToken({
           aud: body.audience,
@@ -259,7 +263,7 @@ server.exchange(oauth2orize.exchange.clientCredentials(
       // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
       // Refresh token SHOULD NOT be included in client credentials
       const additionalParams = {
-        expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+        expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME,
       };
       return done(null, accessToken.value, undefined, additionalParams);
 
@@ -314,7 +318,7 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
       // Should consider security-wise returning a new refresh token with the response.
       // Maybe in future releases refresh token will be omitted.
       const additionalParams = {
-        expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME + config.QUICK_FIX_DELAY,
+        expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME,
       };
       return done(null, accessToken.value, newRefreshToken.value, additionalParams);
     } catch (err) {
@@ -444,39 +448,14 @@ export const tokenIntrospectionEndpoint = [
       }
 
       const accessToken =
-        await accessTokenModel.findOne({ value: token }).populate('userId clientId').lean();
-
-      // TODO: MUST refactor this in single query. Perform aggregation in accessToken document on
-      // audience client by hostUri
-      const accessTokenWithAudience = await accessTokenModel.aggregate([
-        { $match: { value: token } },
-        { $lookup: {
-          from: 'clients', // collection name in db
-          localField: 'audience',
-          foreignField: 'hostUri',
-          as: 'audienceClient',
-        }},
-        // { $lookup: {
-        //   from: 'users', // collection name in db
-        //   let: { newUserId: 'userId' },
-        //   localField: { 'userId': { $toObjectId: '$newUserId' } },
-        //   foreignField: '_id',
-        //   as: 'userId',
-        // }},
-        // { $lookup: {
-        //   from: 'clients', // collection name in db
-        //   localField: 'clientId',
-        //   foreignField: '_id',
-        //   as: 'clientIdB',
-        // }},
-      ]);
+        await accessTokenModel.findOne({ value: token })
+                              .populate('userId clientId audienceClient').lean();
 
       // If access token found and associated to the requester
       if (accessToken &&
           typeof accessToken.clientId === 'object' &&
           ((<IAccessToken>accessToken.clientId).id === req.user.id ||
-          ((accessTokenWithAudience.length > 0) &&
-           (<any>accessTokenWithAudience[0]).audienceClient[0].id === req.user.id))) {
+          (accessToken.audienceClient && accessToken.audienceClient.id === req.user.id))) {
         return res.status(200).send({
           active: true,
           clientId: (<IAccessToken>accessToken.clientId).id,
