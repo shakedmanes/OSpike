@@ -74,10 +74,22 @@ export class ManagementController {
 
       // If we update the hostUri, we need to update the current redirectUris with the new hostUri
       if (clientInformation.hostUri && clientInformation.hostUri !== clientDoc.hostUri) {
+        const clientHostUri = clientInformation.hostUri;
         clientInformation.hostUri = clientInformation.hostUri.toLowerCase();
+        const regHostsUri = new RegExp(
+          `(${clientDoc.hostUri}|${clientHostUri})`,
+        );
+
         for (let index = 0; index < clientDoc.redirectUris.length; index += 1) {
           clientDoc.redirectUris[index] =
-            clientDoc.redirectUris[index].replace(clientDoc.hostUri, clientInformation.hostUri);
+            clientDoc.redirectUris[index].replace(regHostsUri, clientInformation.hostUri);
+        }
+
+        if (clientInformation.redirectUris) {
+          for (let index = 0; index < clientInformation.redirectUris.length; index += 1) {
+            clientInformation.redirectUris[index] =
+              clientInformation.redirectUris[index].replace(regHostsUri, clientInformation.hostUri);
+          }
         }
       }
 
