@@ -41,6 +41,29 @@ export const dismantleNestedProperties = (prop: string, obj: any) => {
 };
 
 /**
+ * Lowercase properties values in object.
+ * [Supported for property containing strings or array of strings]
+ * @param props - Array of properties names
+ * @param obj - Object containing the properties to apply on
+ */
+export const lowerCasePropertiesValues = (props: string[], obj: any) => {
+
+  for (const prop of props) {
+
+    // If the property is array
+    if (Array.isArray(obj[prop])) {
+      for (let index = 0; index < obj[prop].length; index += 1) {
+        obj[prop][index] = obj[prop][index].toLowerCase();
+      }
+    } else if (typeof obj[prop] === 'string') { // If the property is string
+      obj[prop] = obj[prop].toLowerCase();
+    }
+  }
+
+  return obj;
+};
+
+/**
  * Gets property name from interface safely with type checking.
  * @param name - name of the property
  */
@@ -48,6 +71,12 @@ export const propertyOf = <T>(name: keyof T) => name;
 
 // Runs before all the test cases for global configuration
 before(async () => {
+
+  if (process.env.NODE_ENV !== 'test') {
+    console.log('\x1B[31m WARNING:\x1B[0m Invalid node environment when running tests.');
+    process.exit();
+  }
+
   // Use chai as promised syntax in all tests
   chai.use(chaiAsPromised);
 
