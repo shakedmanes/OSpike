@@ -6,7 +6,7 @@ An OAuth2 authorization server supporting OpenID Connect
 
 Clone the project from github and install dependencies:
 
-    git clone https://github.com/shakedmanes/authorization-server.git    
+    git clone https://github.com/rabiran/OSpike.git    
     npm install
 
 After that, in `package.json` file, you'll find 3 `npm` scripts named: `generate-env-[prod/dev/test]`.
