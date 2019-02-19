@@ -18,7 +18,7 @@ function afterCommit() {
       unmodifiedScriptValue[index] = envsConfigurations[scriptName][deleteCred]
     }
 
-    pkgJsonFile.scripts[scriptName] = modifiedScriptValue.join(' ');
+    pkgJsonFile.scripts[scriptName] = unmodifiedScriptValue.join(' ');
   }
 
   fs.writeFileSync(pathJoin(__dirname, '../package.json'), JSON.stringify(pkgJsonFile, null, 2));
