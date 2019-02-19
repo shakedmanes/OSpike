@@ -4,13 +4,17 @@ import mongoose from 'mongoose';
 import config from './config';
 
 /**
- * Deletes all collections in the db
+ * Delete all collections in the db (Or specific ones if specified)
+ * @param [specificCollections] - Specific collections to delete instead of all collections.
  */
-export const deleteCollections = async () => {
+export const deleteCollections = async (specificCollections?: string[]) => {
   const deletePromises = [];
+  const collectionsToDelete = specificCollections || Object.keys(mongoose.connection.collections);
 
-  for (const index in mongoose.connection.collections) {
-    deletePromises.push(mongoose.connection.collections[index].remove({}));
+  for (const collection of collectionsToDelete) {
+    if (mongoose.connection.collections[collection]) {
+      deletePromises.push(mongoose.connection.collections[collection].remove({}));
+    }
   }
 
   await Promise.all(deletePromises);
@@ -18,22 +22,23 @@ export const deleteCollections = async () => {
 
 /**
  * Dismantle object into nested properties for chai nested assertion
- * @param prop - Property name to apply properties on
+ * @param prop - Property name to apply properties on / null if just dismantle object properties out
  * @param obj - Object to apply properties from
  */
-export const dismantleNestedProperties = (prop: string, obj: any) => {
+export const dismantleNestedProperties = (prop: string | null, obj: any) => {
 
   const destructiveObj: any = {};
+  const propName = prop ? `${prop}.` : '';
 
   for (const key of Object.keys(obj)) {
 
     if (Array.isArray(obj[key])) {
       for (let index = 0; index < obj[key].length; index += 1) {
-        destructiveObj[`${prop}.${key}[${index}]`] = obj[key][index];
+        destructiveObj[propName + `${key}[${index}]`] = obj[key][index];
       }
 
     } else {
-      destructiveObj[`${prop}.${key}`] = obj[key];
+      destructiveObj[propName + `${key}`] = obj[key];
     }
   }
 

@@ -23,8 +23,20 @@ const config = {
   CLIENT_MANAGER_PASSPORT_STRATEGY: 'client_manager_strategy', // Only client manager authentication
   CLIENT_MANAGER_PASSPORT_MANAGEMENT_STRATEGY: 'client_manager_management_strategy',
 
-  // Routes Configuration
+  /** Routes Configuration */
   OAUTH_ENDPOINT: '/oauth2',
+
+  // OAuth2 Flows Routes
+  OAUTH_AUTHORIZATION_ENDPOINT: '/authorize',
+  OAUTH_TOKEN_ENDPOINT: '/token',
+  OAUTH_TOKEN_INTROSPECTION_ENDPOINT: '/tokeninfo',
+  OAUTH_TOKEN_USER_CONSENT_ENDPOINT: '/decision', // User decision endpoint
+  OAUTH_USER_LOGIN_ENDPOINT: '/login',
+
+  // OAuth2 Management Routes
+  OAUTH_MANAGEMENT_ENDPOINT: '/register',
+
+  // Well-known Routes for resource sharing (SSL Certificates, Public key, etc.)
   WELLKNOWN_ENDPOINT: '/.well-known',
 
   // Bcrypt

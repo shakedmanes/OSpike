@@ -21,6 +21,9 @@ const config = {
   // Scripts names contains credentials and credentials names
   scriptsContainsCredentials: ['generate-env-dev', 'generate-env-test', 'generate-env-prod'],
   credentailsToDelete: { '-mongoUrl': 'MONGO_URL_HERE', '-username': 'DB_USERNAME_HERE', '-password': 'DB_PASSWORD_HERE' },
+
+  // After commit file name
+  afterCommitFile: '.envs.ac.json',
 }
 
 module.exports = config;
