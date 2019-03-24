@@ -50,4 +50,7 @@ app.use(config.WELLKNOWN_ENDPOINT, wellKnownRouter);
 // Error handler
 app.use(errorHandler);
 
+// Health check for Load Balancer
+app.get('/health', (req, res) => res.send('alive'));
+
 export default app;
