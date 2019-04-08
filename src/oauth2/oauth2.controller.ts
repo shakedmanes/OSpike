@@ -464,6 +464,8 @@ export const tokenIntrospectionEndpoint = [
 
       // If access token found and associated to the requester
       if (accessToken &&
+          (accessToken.expireAt.getTime() +
+           (config.ACCESS_TOKEN_EXPIRATION_TIME * 1000) > Date.now()) &&
           typeof accessToken.clientId === 'object' &&
           ((<IAccessToken>accessToken.clientId).id === req.user.id ||
           (accessToken.audienceClient && accessToken.audienceClient.id === req.user.id))) {

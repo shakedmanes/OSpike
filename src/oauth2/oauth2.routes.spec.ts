@@ -15,7 +15,10 @@ import accessTokenModel, {
 } from '../accessToken/accessToken.model';
 import clientModel from '../client/client.model';
 import { IClient } from '../client/client.interface';
+import { IUser } from '../user/user.interface';
 import { OAuth2Utils, JWTPayload } from './oauth2.utils';
+import { IAccessToken } from '../accessToken/accessToken.interface';
+import userModel from '../user/user.model';
 import { errorMessages } from './oauth2.controller';
 
 // Utility functions for the tests
@@ -79,7 +82,7 @@ interface IResponseBodyTemplate {
   token_type: string;
 }
 
-enum GrantType { CODE, IMPLICIT, CLIENT_CREDENTIALS, PASSWORD }
+enum GrantType { CODE, IMPLICIT, CLIENT_CREDENTIALS, PASSWORD, REFRESH_TOKEN }
 
 function checkTokenResponseValidity(grantType: GrantType,
                                     response: request.Response,
@@ -118,20 +121,55 @@ function checkTokenResponseValidity(grantType: GrantType,
     case (GrantType.PASSWORD):
       break;
 
+    case (GrantType.REFRESH_TOKEN):
+      expect(response).to.have.property('status', 200);
+
+      break;
+
     default:
       break;
   }
 }
 
+/**
+ * Checks token introspection request validity
+ * @param response - The response to check token introspection validity.
+ * @param token - The access token to validate values appropriate to the response given.
+ *                If not given at all, refers it like it was unexisted/inactive token.
+ */
+function checkTokenIntrospection(response: request.Response, token?: IAccessToken) {
+
+  const payload = token ? OAuth2Utils.stripJWTAccessToken(token.value) as object : {};
+
+  expect(response).to.nested.include({
+    status: 200,
+    ...dismantleNestedProperties(
+      'body',
+      {
+        active: !!token,
+        ...(token ?
+          {
+            clientId: token.clientId,
+            ...(token.userId && typeof token.userId === 'object' ?
+                { username: token.userId.name } : null),
+            ...payload,
+          } : {}
+        ),
+
+      },
+    ),
+  });
+}
+
 describe('OAuth2 Flows Functionality', () => {
 
   // Routes for the flows
-  const AUTH_CODE_ENDPOINT = `${config.OAUTH_ENDPOINT}/${config.OAUTH_AUTHORIZATION_ENDPOINT}`;
-  const TOKEN_ENDPOINT = `${config.OAUTH_ENDPOINT}/${config.OAUTH_TOKEN_ENDPOINT}`;
-  const LOGIN_ENDPOINT = `${config.OAUTH_ENDPOINT}/${config.OAUTH_USER_LOGIN_ENDPOINT}`;
-  const DECISION_ENDPOINT = `${config.OAUTH_ENDPOINT}/${config.OAUTH_TOKEN_USER_CONSENT_ENDPOINT}`;
+  const AUTH_CODE_ENDPOINT = `${config.OAUTH_ENDPOINT}${config.OAUTH_AUTHORIZATION_ENDPOINT}`;
+  const TOKEN_ENDPOINT = `${config.OAUTH_ENDPOINT}${config.OAUTH_TOKEN_ENDPOINT}`;
+  const LOGIN_ENDPOINT = `${config.OAUTH_ENDPOINT}${config.OAUTH_USER_LOGIN_ENDPOINT}`;
+  const DECISION_ENDPOINT = `${config.OAUTH_ENDPOINT}${config.OAUTH_TOKEN_USER_CONSENT_ENDPOINT}`;
   const TOKEN_INTROSPECTION_ENDPOINT =
-    `${config.OAUTH_ENDPOINT}/${config.OAUTH_TOKEN_INTROSPECTION_ENDPOINT}`;
+    `${config.OAUTH_ENDPOINT}${config.OAUTH_TOKEN_INTROSPECTION_ENDPOINT}`;
 
   let registeredClient = new clientModel({
     id: 'registeredClientId',
@@ -143,10 +181,39 @@ describe('OAuth2 Flows Functionality', () => {
     scopes: ['something'],
   });
 
+  let registeredClient2 = new clientModel({
+    id: 'registeredClientId2',
+    secret: 'registeredClientSecert2',
+    registrationToken: 'registreredClientRegistrationTokebBlaBla2',
+    name: 'registeredClient2',
+    hostUri: 'https://registeredClient2.register.com',
+    redirectUris: ['https://registeredClient2.register.com/callback2'],
+    scopes: ['something2'],
+  });
+
+  let registeredClient3 = new clientModel({
+    id: 'registeredClientId3',
+    secret: 'registeredClientSecert3',
+    registrationToken: 'registreredClientRegistrationTokebBlaBla3',
+    name: 'registeredClient3',
+    hostUri: 'https://registeredClient3.register.com',
+    redirectUris: ['https://registeredClient3.register.com/callback3'],
+    scopes: ['something3'],
+  });
+
+  let registeredUser = new userModel({
+    name: 'Someone',
+    email: 'someone@someone.com',
+    password: '123456',
+  });
+
   before(async () => {
     await deleteCollections();
 
     registeredClient = await registeredClient.save();
+    registeredClient2 = await registeredClient2.save();
+    registeredClient3 = await registeredClient3.save();
+    registeredUser = await registeredUser.save();
   });
 
   after(async () => {
@@ -155,12 +222,6 @@ describe('OAuth2 Flows Functionality', () => {
 
   describe('Authorization Code Flow', () => {
 
-    it(
-      'Should acquire authorization code by sending appropiate parameters for registered client',
-      () => {
-
-      },
-    );
   });
 
   describe('Implicit Flow', () => {
@@ -171,7 +232,7 @@ describe('OAuth2 Flows Functionality', () => {
 
   });
 
-  describe.only('Client Credentials Flow', () => {
+  describe('Client Credentials Flow', () => {
 
     afterEach(async () => {
       await deleteCollections(['accesstokens']);
@@ -342,7 +403,177 @@ describe('OAuth2 Flows Functionality', () => {
 
   });
 
-  describe('Token Introspection', () => {
+  describe.only('Token Introspection', () => {
 
+    let validToken = new accessTokenModel({
+      clientId: registeredClient._id,
+      audience: registeredClient2.hostUri,
+      value: OAuth2Utils.createJWTAccessToken({
+        aud: registeredClient2.hostUri,
+        sub: registeredClient._id,
+        scope: ['read'],
+        clientId: registeredClient._id,
+      }),
+      scopes: ['read'],
+      grantType: 'client_credentials',
+    });
+
+    let validToken2 = new accessTokenModel({
+      clientId: registeredClient._id,
+      userId: registeredUser._id,
+      audience: registeredClient2.hostUri,
+      value: OAuth2Utils.createJWTAccessToken({
+        aud: registeredClient2.hostUri,
+        sub: registeredUser._id,
+        scope: ['write'],
+        clientId: registeredClient._id,
+      }),
+      scopes: ['write'],
+      grantType: 'code',
+    });
+
+    let validInactiveToken = new accessTokenModel({
+      clientId: registeredClient2._id,
+      audience: registeredClient.hostUri,
+      value: OAuth2Utils.createJWTAccessToken({
+        aud: registeredClient.hostUri,
+        sub: registeredClient2._id,
+        scope: ['write'],
+        clientId: registeredClient2._id,
+      }),
+      scopes: ['write'],
+      grantType: 'client_credentials',
+    });
+
+    before(async () => {
+      await deleteCollections(['accesstokens']);
+      validToken = await validToken.save();
+      validToken2 = await validToken2.save();
+      validInactiveToken = await validInactiveToken.save();
+      await validInactiveToken.update({ expireAt: 100 });
+    });
+
+    it('Should return information about valid token via HTTP Basic Authentication', (done) => {
+      request(app)
+        .post(TOKEN_INTROSPECTION_ENDPOINT)
+        .set(
+          'Authorization',
+          createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+        ).send({ token: validToken.value })
+        .expect(res => checkTokenIntrospection(res, validToken))
+        .end(done);
+    });
+
+    it('Should return information about valid token via POST Authentication', (done) => {
+      request(app)
+        .post(TOKEN_INTROSPECTION_ENDPOINT)
+        .send({
+          token: validToken.value,
+          client_id: registeredClient.id,
+          client_secret: registeredClient.secret,
+        }).expect(res => checkTokenIntrospection(res, validToken))
+        .end(done);
+    });
+
+    it('Should return information about valid token containing associated username', (done) => {
+      request(app)
+        .post(TOKEN_INTROSPECTION_ENDPOINT)
+        .set(
+          'Authorization',
+          createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+        ).send({ token: validToken2.value })
+        .expect(res => checkTokenIntrospection(res, validToken2))
+        .end(done);
+    });
+
+    it('Should return information about valid token to audience client', (done) => {
+      request(app)
+        .post(TOKEN_INTROSPECTION_ENDPOINT)
+        .set(
+          'Authorization',
+          createAuthorizationHeader(registeredClient2.id, registeredClient2.secret),
+        ).send({ token: validToken.value })
+        .expect(res => checkTokenIntrospection(res, validToken))
+        .end(done);
+    });
+
+    it('Should return information about valid token to the associated client', (done) => {
+      request(app)
+      .post(TOKEN_INTROSPECTION_ENDPOINT)
+      .set(
+        'Authorization',
+        createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+      ).send({ token: validToken.value })
+      .expect(res => checkTokenIntrospection(res, validToken))
+      .end(done);
+    });
+
+    it(`Should not return information about valid token to ${''
+       }client which is not associated or audience`,
+       (done) => {
+         request(app)
+          .post(TOKEN_INTROSPECTION_ENDPOINT)
+          .set(
+            'Authorization',
+            createAuthorizationHeader(registeredClient3.id, registeredClient3.secret),
+          ).send({ token: validToken.value })
+          .expect(res => checkTokenIntrospection(res))
+          .end(done);
+       },
+    );
+
+    it('Should not return information about valid token without authentication', (done) => {
+      request(app)
+        .post(TOKEN_INTROSPECTION_ENDPOINT)
+        .send({ token: validToken.value })
+        .expect(401)
+        .end(done);
+    });
+
+    it('Should return only active status about inactive token', (done) => {
+      request(app)
+        .post(TOKEN_INTROSPECTION_ENDPOINT)
+        .set(
+          'Authorization',
+          createAuthorizationHeader(registeredClient2.id, registeredClient2.secret),
+        ).send({ token: validInactiveToken.value })
+        .expect(res => checkTokenIntrospection(res))
+        .end(done);
+    });
+
+    it('Should return only active status about unexists token', (done) => {
+
+      const unexistToken = OAuth2Utils.createJWTAccessToken({
+        aud: 'https://unexistingAudienceHostUri',
+        sub: 'unexistSubjectId',
+        scope: ['unexistingScope'],
+        clientId: 'unexistingClientId',
+      });
+
+      const unexistToken2 = OAuth2Utils.createJWTAccessToken({
+        aud: registeredClient3.hostUri,
+        sub: registeredClient2._id,
+        scope: ['something2'],
+        clientId: registeredClient2.id,
+      });
+
+      request(app)
+        .post(TOKEN_INTROSPECTION_ENDPOINT)
+        .set(
+          'Authorization',
+          createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+        ).send({ token:  unexistToken })
+        .expect(res => checkTokenIntrospection(res))
+        .end(() => {
+          request(app)
+            .post(TOKEN_INTROSPECTION_ENDPOINT)
+            .set(
+              'Authorization',
+              createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+            ).send({ token:  unexistToken2 })
+            .expect(res => checkTokenIntrospection(res))
+            .end(done);
+        });
+    });
   });
 });
