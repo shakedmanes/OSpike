@@ -21,6 +21,13 @@ import { isScopeEquals } from '../utils/isEqual';
 import config from '../config';
 import { BadRequest } from '../utils/error';
 
+// Error messages
+export const errorMessages = {
+  MISSING_AUDIENCE: 'The audience parameter is missing.',
+  MISSING_SCOPE_IN_CLIENT: `Client doesn't support client_credentials due incomplete scopes value.`,
+  MISSING_SCOPE: 'The scope parameter is missing.',
+};
+
 // TODO: create specified config files with grants types
 // TODO: create generated session key for each of the requests
 // TODO: refactor ensureLoggedIn binding
@@ -240,28 +247,27 @@ server.exchange(oauth2orize.exchange.clientCredentials(
     // If the client doesn't have actually scopes to grant authorization on
     // if (client.scopes.length === 0) {
     // tslint:disable-next-line:max-line-length
-    //   const errorMessage = `Client doesn't support client_credentials due incomplete scopes value`;
-    //   return done(new BadRequest(errorMessage));
+    //   return done(new BadRequest(errorMessages.MISSING_SCOPE_IN_CLIENT));
     // }
 
     // Check if audience specified
     if (!body.audience) {
-      return done(new BadRequest('The audience parameter is missing.'));
+      return done(new BadRequest(errorMessages.MISSING_AUDIENCE));
     }
 
     try {
-
+      // Change scopes values when working on scopes feature
       const accessToken = await new accessTokenModel({
         value: OAuth2Utils.createJWTAccessToken({
           aud: body.audience,
           sub: client._id,
-          scope: client.scopes,
+          scope: client.scopes, // Change this to body.scope
           clientId: client.id,
         }),
         clientId: client._id,
         audience: body.audience,
         grantType: 'client_credentials',
-        scopes: client.scopes,
+        scopes: client.scopes, // Change this to body.scope
       }).save();
 
       // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
@@ -458,6 +464,8 @@ export const tokenIntrospectionEndpoint = [
 
       // If access token found and associated to the requester
       if (accessToken &&
+          (accessToken.expireAt.getTime() +
+           (config.ACCESS_TOKEN_EXPIRATION_TIME * 1000) > Date.now()) &&
           typeof accessToken.clientId === 'object' &&
           ((<IAccessToken>accessToken.clientId).id === req.user.id ||
           (accessToken.audienceClient && accessToken.audienceClient.id === req.user.id))) {

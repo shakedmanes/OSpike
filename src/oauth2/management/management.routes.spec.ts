@@ -19,7 +19,7 @@ import config from '../../config';
 
 describe('Client Management Routes Functionality', () => {
 
-  const registerEndpoint = config.OAUTH_ENDPOINT + '/register';
+  const registerEndpoint = `${config.OAUTH_ENDPOINT}/${config.OAUTH_MANAGEMENT_ENDPOINT}`;
 
   const validClientInformation: IClientBasicInformation =  {
     name: 'TestName',

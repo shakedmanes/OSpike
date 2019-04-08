@@ -22,6 +22,7 @@
     "generate-env-prod": "node ./scripts/generate_env.js -env prod -port 1337 -hostname 0.0.0.0 -mongoUrl MONGO_URL_HERE -username DB_USERNAME_HERE -password DB_PASSWORD_HERE",
     "generate-jwks": "node ./scripts/generate_jwks.js",
     "bc": "node ./scripts/before_commit.js",
+    "ac": "node ./scripts/after_commit.js",
     "test": "npm run build-test && mocha dist/test.js dist/**/*.spec.js -t 15000 -r dotenv/config --exit"
   },
   "repository": {

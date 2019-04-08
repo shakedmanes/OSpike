@@ -11,6 +11,10 @@ import config from '../config';
 // TODO: Define scope model and scope types
 // TODO: Define specific grant types available for token
 
+export const errorMessages = {
+  DUPLICATE_ACCESS_TOKEN: `There's already token for the client and the user and the audience.`,
+};
+
 const accessTokenSchema = new Schema(
   {
     clientId: {
@@ -75,7 +79,7 @@ accessTokenSchema.pre<IAccessToken>('save', async function (this: IAccessToken, 
 // Construct better error handling for errors from mongo server
 accessTokenSchema.post('save', (err, doc, next) => {
   if (err.name === 'MongoError' && err.code === 11000) {
-    err.message = `There's already token for the client and the user and the audience.`;
+    err.message = errorMessages.DUPLICATE_ACCESS_TOKEN;
   }
 
   next(err);

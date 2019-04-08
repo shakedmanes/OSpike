@@ -65,3 +65,6 @@ dist/
 
 # certificate files folder
 src/certs/files/
+
+# after commit environments file
+.envs.ac.json
