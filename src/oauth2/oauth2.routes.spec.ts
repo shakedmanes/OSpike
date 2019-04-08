@@ -89,6 +89,7 @@ function checkTokenResponseValidity(grantType: GrantType,
                                     client: IClient,
                                     tokenOptions: ITokenOptions) {
   const responseBodyTemplate = ['access_token', 'refresh_token', 'expires_in', 'token_type'];
+  let accessToken: JWTPayload;
 
   switch (grantType) {
 
@@ -105,8 +106,7 @@ function checkTokenResponseValidity(grantType: GrantType,
       responseBodyTemplate.splice(1, 1);
       expect(response.body).to.have.all.keys(responseBodyTemplate);
 
-      const accessToken: JWTPayload =
-        OAuth2Utils.stripJWTAccessToken(response.body.access_token) as JWTPayload;
+      accessToken = OAuth2Utils.stripJWTAccessToken(response.body.access_token) as JWTPayload;
 
       expect(accessToken).to.nested.include({
         iss: config.issuerHostUri,
@@ -119,6 +119,18 @@ function checkTokenResponseValidity(grantType: GrantType,
       break;
 
     case (GrantType.PASSWORD):
+      expect(response).to.have.property('status', 200);
+      expect(response.body).to.have.all.keys(responseBodyTemplate);
+
+      accessToken = OAuth2Utils.stripJWTAccessToken(response.body.access_token) as JWTPayload;
+
+      expect(accessToken).to.nested.include({
+        iss: config.issuerHostUri,
+        clientId: client.id,
+        iat: accessToken.exp - config.ACCESS_TOKEN_EXPIRATION_TIME,
+        exp: accessToken.iat + config.ACCESS_TOKEN_EXPIRATION_TIME,
+        ...dismantleNestedProperties(null, tokenOptions),
+      });
       break;
 
     case (GrantType.REFRESH_TOKEN):
@@ -201,10 +213,18 @@ describe('OAuth2 Flows Functionality', () => {
     scopes: ['something3'],
   });
 
+  const registeredUserPassword = '123456';
   let registeredUser = new userModel({
     name: 'Someone',
     email: 'someone@someone.com',
-    password: '123456',
+    password: registeredUserPassword,
+  });
+
+  const registeredUserPassword2 = 'johnny';
+  let registeredUser2 = new userModel({
+    name: 'Johndoe',
+    email: 'johndoe@smith.com',
+    password: registeredUserPassword2,
   });
 
   before(async () => {
@@ -214,6 +234,7 @@ describe('OAuth2 Flows Functionality', () => {
     registeredClient2 = await registeredClient2.save();
     registeredClient3 = await registeredClient3.save();
     registeredUser = await registeredUser.save();
+    registeredUser2 = await registeredUser2.save();
   });
 
   after(async () => {
@@ -228,8 +249,269 @@ describe('OAuth2 Flows Functionality', () => {
 
   });
 
-  describe('Resource Owner Password Credentials Flow', () => {
+  describe.only('Resource Owner Password Credentials Flow', () => {
 
+    afterEach(async () => {
+      await deleteCollections(['accesstokens']);
+    });
+
+    it('Should acquire token for registered client and user via HTTP Basic Authentication',
+       (done) => {
+         request(app)
+          .post(TOKEN_ENDPOINT)
+          .set(
+            'Authorization',
+            createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+          ).send(
+            createTokenParameters(
+              'password',
+              'https://audience',
+              'something',
+              registeredUser.email,
+              registeredUserPassword,
+            ),
+          ).expect((res) => {
+            checkTokenResponseValidity(
+              GrantType.PASSWORD,
+              res,
+              registeredClient,
+              { aud: 'https://audience', scope: ['something'], sub: registeredUser.id },
+            );
+          }).end(done);
+       },
+    );
+
+    it('Should acquire token for registered client and user via POST Authentication',
+       (done) => {
+         request(app)
+          .post(TOKEN_ENDPOINT)
+          .send({
+            ...createTokenParameters(
+              'password',
+              'https://audience',
+              'something',
+              registeredUser.email,
+              registeredUserPassword,
+            ),
+            client_id: registeredClient.id,
+            client_secret: registeredClient.secret,
+          }).expect((res) => {
+            checkTokenResponseValidity(
+              GrantType.PASSWORD,
+              res,
+              registeredClient,
+              { aud: 'https://audience', scope: ['something'], sub: registeredUser.id },
+            );
+          }).end(done);
+       },
+    );
+
+    it(`Should acquire token for registered client and user ${''
+        }even if there's already token for the user (different audience)`,
+       async () => {
+         const previousAccessToken = await new accessTokenModel({
+           clientId: registeredClient._id,
+           audience: 'https://someaudience.com',
+           userId: registeredUser.id,
+           value: 'abcd1234',
+           scopes: ['something'],
+           grantType: 'password',
+         }).save();
+
+         const response =
+           await request(app)
+                  .post(TOKEN_ENDPOINT)
+                  .set(
+                    'Authorization',
+                    createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+                  ).send(
+                    createTokenParameters(
+                      'password',
+                      'https://audience',
+                      'something',
+                      registeredUser.email,
+                      registeredUserPassword,
+                    ),
+                  );
+
+         checkTokenResponseValidity(
+           GrantType.PASSWORD,
+           response,
+           registeredClient,
+           { aud: 'https://audience', scope: ['something'], sub: registeredUser.id },
+         );
+       },
+    );
+
+    it(`Should acquire token for registered client and user ${''
+        }even if there's already token for the user (different user)`,
+       async () => {
+         const previousAccessToken = await new accessTokenModel({
+           clientId: registeredClient._id,
+           audience: 'https://audience.com',
+           userId: registeredUser.id,
+           value: 'abcd1234',
+           scopes: ['something'],
+           grantType: 'password',
+         }).save();
+
+         const response =
+           await request(app)
+                  .post(TOKEN_ENDPOINT)
+                  .set(
+                    'Authorization',
+                    createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+                  ).send(
+                    createTokenParameters(
+                      'password',
+                      'https://audience',
+                      'something',
+                      registeredUser2.email,
+                      registeredUserPassword2,
+                    ),
+                  );
+
+         checkTokenResponseValidity(
+           GrantType.PASSWORD,
+           response,
+           registeredClient,
+           { aud: 'https://audience', scope: ['something'], sub: registeredUser2.id },
+         );
+       },
+    );
+
+    it('Should not acquire token for registered client and user without client authentication',
+       (done) => {
+         request(app)
+         .post(TOKEN_ENDPOINT)
+         .send(
+           createTokenParameters(
+             'password',
+             'https://audience',
+             'something',
+             registeredUser.id,
+             registeredUserPassword,
+            ),
+         ).expect(401)
+         .end(done);
+       },
+    );
+
+    it('Should not acquire token for registered client and user without audience parameter',
+       (done) => {
+         request(app)
+          .post(TOKEN_ENDPOINT)
+          .set(
+            'Authorization',
+            createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+          ).send(
+            createTokenParameters(
+              'password',
+              undefined,
+              'something',
+              registeredUser.email,
+              registeredUserPassword,
+            ),
+          ).expect(400, { message: errorMessages.MISSING_AUDIENCE })
+          .end(done);
+       },
+    );
+
+    it(`Should not acquire token for registered client and user ${''
+        }without/incorrect grant_type parameter`,
+       (done) => {
+         request(app)
+          .post(TOKEN_ENDPOINT)
+          .set(
+            'Authorization',
+            createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+          ).send(
+            createTokenParameters(
+              undefined,
+              'https://audience',
+              'something',
+              registeredUser.email,
+              registeredUserPassword,
+            ),
+          ).expect(501)
+          .end(done);
+       },
+    );
+
+    it(`Should not acquire token for registered client and user when ${''
+        }there's already token associated with the same audience`,
+       async () => {
+         const previousAccessToken = await new accessTokenModel({
+          clientId: registeredClient._id,
+          userId: registeredUser._id,
+          audience: 'https://audience',
+          value: 'abcd1234',
+          scopes: ['reading'],
+          grantType: 'password',
+         }).save();
+
+         const response =
+           await request(app)
+                  .post(TOKEN_ENDPOINT)
+                  .set(
+                    'Authorization',
+                    createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+                  ).send(
+                    createTokenParameters(
+                      'password',
+                      'https://audience',
+                      'something',
+                      registeredUser.email,
+                      registeredUserPassword,
+                      ),
+                  );
+         expect(response).to.nested.include({
+           status: 400,
+           'body.message': tokenErrorMessages.DUPLICATE_ACCESS_TOKEN,
+         });
+
+       },
+    );
+
+    it('Should not acquire token for unregistered client',
+       (done) => {
+         request(app)
+          .post(TOKEN_ENDPOINT)
+          .set(
+            'Authorization',
+            createAuthorizationHeader('unexistingClientId', 'unexisitingClientSecret'),
+          ).send(
+            createTokenParameters(
+              'password',
+              'https://audience',
+              'something',
+              registeredUser.email,
+              registeredUserPassword,
+            ),
+          ).expect(401)
+          .end(done);
+       },
+    );
+
+    it('Should not acquire token for unregistered user',
+       (done) => {
+         request(app)
+          .post(TOKEN_ENDPOINT)
+          .set(
+            'Authorization',
+            createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+          ).send(
+            createTokenParameters(
+              'password',
+              'https://audience',
+              'something',
+              'unexistingUserEmail',
+              'unexistingUserPassword',
+            ),
+          ).expect(403, { message: 'Invalid resource owner credentials' })
+          .end(done);
+       },
+    );
   });
 
   describe('Client Credentials Flow', () => {
@@ -403,7 +685,7 @@ describe('OAuth2 Flows Functionality', () => {
 
   });
 
-  describe.only('Token Introspection', () => {
+  describe('Token Introspection', () => {
 
     let validToken = new accessTokenModel({
       clientId: registeredClient._id,
