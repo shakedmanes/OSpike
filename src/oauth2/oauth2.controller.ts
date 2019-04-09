@@ -188,7 +188,7 @@ server.exchange(oauth2orize.exchange.password(
 
     // Check if audience specified
     if (!body.audience) {
-      return done(new BadRequest('The audience parameter is missing.'));
+      return done(new BadRequest(errorMessages.MISSING_AUDIENCE));
     }
 
     // In the user model schema we authenticate via email & password so username should be the email
@@ -395,7 +395,7 @@ export const authorizationEndpoint = [
 
     // Put on the oauth2 request information object the audience
     if (!req.query.audience) {
-      throw new BadRequest('The audience parameter is missing.');
+      throw new BadRequest(errorMessages.MISSING_AUDIENCE);
     }
 
     req.oauth2.info.audience = req.query.audience;
