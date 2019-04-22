@@ -299,27 +299,30 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
     populate: { path: 'clientId' },
   });
 
-  // Checking the refresh token was issued for the authenticated client
+  // Checking the refresh token was issued for the authenticated client.
+  // Also, checking if somehow an attacker managed to create refresh token for client credentials
+  // flow and avoid it.
   if (refreshTokenDoc &&
-      (<IClient>(<IAccessToken>refreshTokenDoc.accessTokenId).clientId).id === client.id) {
+      (<IClient>(<IAccessToken>refreshTokenDoc.accessTokenId).clientId).id === client.id &&
+      (<IAccessToken>refreshTokenDoc.accessTokenId).grantType !== 'client_credentials') {
     try {
+      // Need to delete previous access token and refresh token
+      await (<IAccessToken>refreshTokenDoc.accessTokenId).remove();
+      await refreshTokenDoc.remove();
+
       const accessToken = await new accessTokenModel({
         value: OAuth2Utils.createJWTAccessToken({
           aud: (<IAccessToken>refreshTokenDoc.accessTokenId).audience,
           sub: (<IAccessToken>refreshTokenDoc.accessTokenId).userId as string,
           scope: (<IAccessToken>refreshTokenDoc.accessTokenId).scopes,
-          clientId: client.id,
+          clientId: (<IClient>(<IAccessToken>refreshTokenDoc.accessTokenId).clientId).id,
         }),
-        clientId: (<IAccessToken>refreshTokenDoc.accessTokenId).clientId,
+        clientId: (<IClient>(<IAccessToken>refreshTokenDoc.accessTokenId).clientId)._id,
         userId: (<IAccessToken>refreshTokenDoc.accessTokenId).userId,
         audience: (<IAccessToken>refreshTokenDoc.accessTokenId).audience,
         scopes: (<IAccessToken>refreshTokenDoc.accessTokenId).scopes,
         grantType: (<IAccessToken>refreshTokenDoc.accessTokenId).grantType,
       }).save();
-
-      // Need to delete previous access token and refresh token
-      await (<IAccessToken>refreshTokenDoc.accessTokenId).remove();
-      await refreshTokenDoc.remove();
 
       const newRefreshToken = await new refreshTokenModel({
         value: refreshTokenValueGenerator(),

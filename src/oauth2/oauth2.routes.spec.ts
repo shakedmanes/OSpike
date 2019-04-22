@@ -14,14 +14,18 @@ import accessTokenModel, {
   errorMessages as tokenErrorMessages,
 } from '../accessToken/accessToken.model';
 import clientModel from '../client/client.model';
+import refreshTokenModel from '../refreshToken/refreshToken.model';
 import { IClient } from '../client/client.interface';
 import { IUser } from '../user/user.interface';
 import { OAuth2Utils, JWTPayload } from './oauth2.utils';
+import { refreshTokenValueGenerator } from '../utils/valueGenerator';
 import { IAccessToken } from '../accessToken/accessToken.interface';
 import userModel from '../user/user.model';
 import { errorMessages } from './oauth2.controller';
+import { IRefreshToken } from '../refreshToken/refreshToken.interface';
 
 // Utility functions for the tests
+
 function createAuthorizationParameters(responseType: string,
                                        clientId: string,
                                        redirectUri: string,
@@ -50,7 +54,15 @@ function createTokenParameters(grantType?: string,
     ...(username ? { username } : null),
     ...(password ? { password } : null),
   };
+}
 
+function createRefreshTokenParameters(refreshToken?: string, scope?: string) {
+
+  return {
+    grant_type: 'refresh_token',
+    ...(refreshToken ? { refresh_token: refreshToken } : null),
+    ...(scope ? { scope } : null),
+  };
 }
 
 /**
@@ -94,7 +106,6 @@ function checkTokenResponseValidity(grantType: GrantType,
   switch (grantType) {
 
     case (GrantType.CODE):
-
       break;
 
     case (GrantType.IMPLICIT):
@@ -135,7 +146,17 @@ function checkTokenResponseValidity(grantType: GrantType,
 
     case (GrantType.REFRESH_TOKEN):
       expect(response).to.have.property('status', 200);
+      expect(response.body).to.have.all.keys(responseBodyTemplate);
 
+      accessToken = OAuth2Utils.stripJWTAccessToken(response.body.access_token) as JWTPayload;
+
+      expect(accessToken).to.nested.include({
+        iss: config.issuerHostUri,
+        clientId: client.id,
+        iat: accessToken.exp - config.ACCESS_TOKEN_EXPIRATION_TIME,
+        exp: accessToken.iat + config.ACCESS_TOKEN_EXPIRATION_TIME,
+        ...dismantleNestedProperties(null, tokenOptions),
+      });
       break;
 
     default:
@@ -249,7 +270,7 @@ describe('OAuth2 Flows Functionality', () => {
 
   });
 
-  describe.only('Resource Owner Password Credentials Flow', () => {
+  describe('Resource Owner Password Credentials Flow', () => {
 
     afterEach(async () => {
       await deleteCollections(['accesstokens']);
@@ -681,7 +702,296 @@ describe('OAuth2 Flows Functionality', () => {
 
   });
 
-  describe('Refresh Token Flow', () => {
+  describe.only('Refresh Token Flow', () => {
+
+    // Need to add refresh token for each token...
+    let tokenClientCredentials: IAccessToken;
+    let tokenAuthorizationCode: IAccessToken;
+    let tokenResourceOwnerCredentials: IAccessToken;
+    let tokenImplicit: IAccessToken;
+    let tokenInactive: IAccessToken;
+
+    let refreshTokenClientCredentials: IRefreshToken;
+    let refreshTokenAuthorizationCode: IRefreshToken;
+    let refreshTokenResourceOwnerCredentials: IRefreshToken;
+    let refreshTokenImplicit: IRefreshToken;
+    let inactiveRefreshToken: IRefreshToken;
+
+    const tokenParamsClientCredentials = {
+      clientId: registeredClient._id,
+      audience: registeredClient2.hostUri,
+      value: OAuth2Utils.createJWTAccessToken({
+        aud: registeredClient2.hostUri,
+        sub: registeredClient._id,
+        scope: ['read'],
+        clientId: registeredClient._id,
+      }),
+      scopes: ['read'],
+      grantType: 'client_credentials',
+    };
+
+    const tokenParamsAuthorizationCode = {
+      clientId: registeredClient._id,
+      userId: registeredUser._id,
+      audience: registeredClient2.hostUri,
+      value: OAuth2Utils.createJWTAccessToken({
+        aud: registeredClient2.hostUri,
+        sub: registeredUser._id,
+        scope: ['write'],
+        clientId: registeredClient._id,
+      }),
+      scopes: ['write'],
+      grantType: 'code',
+    };
+
+    const tokenParamsResourceOwnerCredentials = {
+      clientId: registeredClient._id,
+      userId: registeredUser._id,
+      audience: registeredClient3.hostUri,
+      value: OAuth2Utils.createJWTAccessToken({
+        aud: registeredClient3.hostUri,
+        sub: registeredUser._id,
+        scope: ['write'],
+        clientId: registeredClient._id,
+      }),
+      scopes: ['write'],
+      grantType: 'password',
+    };
+
+    const tokenParamsImplicit = {
+      clientId: registeredClient3._id,
+      userId: registeredUser._id,
+      audience: registeredClient.hostUri,
+      value: OAuth2Utils.createJWTAccessToken({
+        aud: registeredClient.hostUri,
+        sub: registeredUser._id,
+        scope: ['write'],
+        clientId: registeredClient._id,
+      }),
+      scopes: ['write'],
+      grantType: 'token',
+    };
+
+    const tokenParamsInactive = {
+      clientId: registeredClient2._id,
+      userId: registeredUser2._id,
+      audience: registeredClient.hostUri,
+      value: OAuth2Utils.createJWTAccessToken({
+        aud: registeredClient.hostUri,
+        sub:registeredUser2._id,
+        scope: ['write'],
+        clientId: registeredClient2._id,
+      }),
+      scope: ['write'],
+      grantType: 'code',
+    };
+
+    // Middleware for before and after test cases
+    const deleteAndCreateTokens = async () => {
+      await deleteCollections(['accesstokens', 'refreshtokens']);
+
+      tokenClientCredentials = await new accessTokenModel(tokenParamsClientCredentials).save();
+      tokenAuthorizationCode = await new accessTokenModel(tokenParamsAuthorizationCode).save();
+      tokenResourceOwnerCredentials =
+        await new accessTokenModel(tokenParamsResourceOwnerCredentials).save();
+      tokenImplicit = await new accessTokenModel(tokenParamsImplicit).save();
+      tokenInactive = await new accessTokenModel(tokenParamsInactive).save();
+
+      refreshTokenClientCredentials = await new refreshTokenModel({
+        value: refreshTokenValueGenerator(),
+        accessTokenId: tokenClientCredentials._id,
+      }).save();
+      refreshTokenAuthorizationCode = await new refreshTokenModel({
+        value: refreshTokenValueGenerator(),
+        accessTokenId: tokenAuthorizationCode._id,
+      }).save();
+      refreshTokenResourceOwnerCredentials = await new refreshTokenModel({
+        value: refreshTokenValueGenerator(),
+        accessTokenId: tokenResourceOwnerCredentials._id,
+      }).save();
+      refreshTokenImplicit = await new refreshTokenModel({
+        value: refreshTokenValueGenerator(),
+        accessTokenId: tokenImplicit._id,
+      }).save();
+      inactiveRefreshToken = await new refreshTokenModel({
+        value: refreshTokenValueGenerator(),
+        accessTokenId: tokenInactive._id,
+      }).save();
+
+      await tokenClientCredentials.populate('clientId').execPopulate();
+      await tokenAuthorizationCode.populate('clientId').execPopulate();
+      await tokenResourceOwnerCredentials.populate('clientId').execPopulate();
+      await tokenImplicit.populate('clientId').execPopulate();
+      await tokenInactive.populate('clientId').execPopulate();
+    };
+
+    before(deleteAndCreateTokens);
+
+    afterEach(deleteAndCreateTokens);
+
+    it('Should refresh existing token via HTTP Basic Authentication',
+       async () => {
+
+         // Response for each flow
+         const resAuthCode =
+          await request(app)
+            .post(TOKEN_ENDPOINT)
+            .set(
+              'Authorization',
+              createAuthorizationHeader(
+                (<IClient>tokenAuthorizationCode.clientId).id,
+                (<IClient>tokenAuthorizationCode.clientId).secret,
+              ),
+            ).send(createRefreshTokenParameters(refreshTokenAuthorizationCode.value));
+         const resImplicit =
+          await request(app)
+            .post(TOKEN_ENDPOINT)
+            .set(
+              'Authorization',
+              createAuthorizationHeader(
+                (<IClient>tokenImplicit.clientId).id,
+                (<IClient>tokenImplicit.clientId).secret,
+              ),
+            ).send(createRefreshTokenParameters(refreshTokenImplicit.value));
+         const resResourceOwnerCredentials =
+          await request(app)
+            .post(TOKEN_ENDPOINT)
+            .set(
+              'Authorization',
+              createAuthorizationHeader(
+                (<IClient>tokenResourceOwnerCredentials.clientId).id,
+                (<IClient>tokenResourceOwnerCredentials.clientId).secret,
+              ),
+            ).send(createRefreshTokenParameters(refreshTokenResourceOwnerCredentials.value));
+         const resClientCredentials =
+          await request(app)
+            .post(TOKEN_ENDPOINT)
+            .set(
+              'Authorization',
+              createAuthorizationHeader(
+                (<IClient>tokenClientCredentials.clientId).id,
+                (<IClient>tokenClientCredentials.clientId).secret,
+              ),
+            ).send(createRefreshTokenParameters(refreshTokenClientCredentials.value));
+
+         checkTokenResponseValidity(
+           GrantType.REFRESH_TOKEN,
+           resAuthCode,
+           (<IClient>tokenAuthorizationCode.clientId),
+           {
+             aud: tokenAuthorizationCode.audience,
+             sub: <string>tokenAuthorizationCode.userId,
+             scope: tokenAuthorizationCode.scopes,
+           },
+         );
+
+         checkTokenResponseValidity(
+           GrantType.REFRESH_TOKEN,
+           resImplicit,
+           (<IClient>tokenImplicit.clientId),
+           {
+             aud: tokenImplicit.audience,
+             sub: <string>tokenImplicit.userId,
+             scope: tokenImplicit.scopes,
+           },
+         );
+
+         checkTokenResponseValidity(
+           GrantType.REFRESH_TOKEN,
+           resResourceOwnerCredentials,
+           (<IClient>tokenResourceOwnerCredentials.clientId),
+           {
+             aud: tokenResourceOwnerCredentials.audience,
+             sub: <string>tokenResourceOwnerCredentials.userId,
+             scope: tokenResourceOwnerCredentials.scopes,
+           },
+         );
+
+         expect(resClientCredentials).to.nested.include({
+           status: 403,
+           'body.message': 'Invalid refresh token',
+         });
+
+       },
+    );
+
+    it('Should refresh existing token via POST Authentication',
+       async () => {
+
+         // Response for each flow
+         const resAuthCode =
+          await request(app)
+            .post(TOKEN_ENDPOINT)
+            .send({
+              client_id: (<IClient>tokenAuthorizationCode.clientId).id,
+              client_secret: (<IClient>tokenAuthorizationCode.clientId).secret,
+              ...createRefreshTokenParameters(refreshTokenAuthorizationCode.value),
+            });
+         const resImplicit =
+          await request(app)
+            .post(TOKEN_ENDPOINT)
+            .send({
+              client_id: (<IClient>tokenImplicit.clientId).id,
+              client_secret: (<IClient>tokenImplicit.clientId).secret,
+              ...createRefreshTokenParameters(refreshTokenImplicit.value),
+            });
+         const resResourceOwnerCredentials =
+          await request(app)
+            .post(TOKEN_ENDPOINT)
+            .send({
+              client_id: (<IClient>tokenResourceOwnerCredentials.clientId).id,
+              client_secret: (<IClient>tokenResourceOwnerCredentials.clientId).secret,
+              ...createRefreshTokenParameters(refreshTokenResourceOwnerCredentials.value),
+            });
+         const resClientCredentials =
+          await request(app)
+            .post(TOKEN_ENDPOINT)
+            .send({
+              client_id: (<IClient>tokenClientCredentials.clientId).id,
+              client_secret: (<IClient>tokenClientCredentials.clientId).secret,
+              ...createRefreshTokenParameters(refreshTokenClientCredentials.value),
+            });
+
+         checkTokenResponseValidity(
+           GrantType.REFRESH_TOKEN,
+           resAuthCode,
+           (<IClient>tokenAuthorizationCode.clientId),
+           {
+             aud: tokenAuthorizationCode.audience,
+             sub: <string>tokenAuthorizationCode.userId,
+             scope: tokenAuthorizationCode.scopes,
+           },
+         );
+
+         checkTokenResponseValidity(
+           GrantType.REFRESH_TOKEN,
+           resImplicit,
+           (<IClient>tokenImplicit.clientId),
+           {
+             aud: tokenImplicit.audience,
+             sub: <string>tokenImplicit.userId,
+             scope: tokenImplicit.scopes,
+           },
+         );
+
+         checkTokenResponseValidity(
+           GrantType.REFRESH_TOKEN,
+           resResourceOwnerCredentials,
+           (<IClient>tokenResourceOwnerCredentials.clientId),
+           {
+             aud: tokenResourceOwnerCredentials.audience,
+             sub: <string>tokenResourceOwnerCredentials.userId,
+             scope: tokenResourceOwnerCredentials.scopes,
+           },
+         );
+
+         expect(resClientCredentials).to.nested.include({
+           status: 403,
+           'body.message': 'Invalid refresh token',
+         });
+
+       },
+    );
 
   });
 
