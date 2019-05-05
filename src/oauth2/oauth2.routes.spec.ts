@@ -105,9 +105,11 @@ function checkTokenResponseValidity(grantType: GrantType,
 
   switch (grantType) {
 
+    // Checking Authorization Code Flow
     case (GrantType.CODE):
       break;
 
+    // Checking Implicit Flow
     case (GrantType.IMPLICIT):
       break;
 
@@ -129,6 +131,7 @@ function checkTokenResponseValidity(grantType: GrantType,
       });
       break;
 
+    // Checking Resource Owner Password Credentials Flow
     case (GrantType.PASSWORD):
       expect(response).to.have.property('status', 200);
       expect(response.body).to.have.all.keys(responseBodyTemplate);
@@ -144,6 +147,7 @@ function checkTokenResponseValidity(grantType: GrantType,
       });
       break;
 
+    // Checking Refresh Token Flow
     case (GrantType.REFRESH_TOKEN):
       expect(response).to.have.property('status', 200);
       expect(response.body).to.have.all.keys(responseBodyTemplate);
@@ -267,6 +271,10 @@ describe('OAuth2 Flows Functionality', () => {
   });
 
   describe('Implicit Flow', () => {
+
+    afterEach(async () => {
+      await deleteCollections(['accesstokens']);
+    });
 
   });
 
@@ -702,20 +710,17 @@ describe('OAuth2 Flows Functionality', () => {
 
   });
 
-  describe.only('Refresh Token Flow', () => {
+  describe('Refresh Token Flow', () => {
 
-    // Need to add refresh token for each token...
     let tokenClientCredentials: IAccessToken;
     let tokenAuthorizationCode: IAccessToken;
     let tokenResourceOwnerCredentials: IAccessToken;
     let tokenImplicit: IAccessToken;
-    let tokenInactive: IAccessToken;
 
     let refreshTokenClientCredentials: IRefreshToken;
     let refreshTokenAuthorizationCode: IRefreshToken;
     let refreshTokenResourceOwnerCredentials: IRefreshToken;
     let refreshTokenImplicit: IRefreshToken;
-    let inactiveRefreshToken: IRefreshToken;
 
     const tokenParamsClientCredentials = {
       clientId: registeredClient._id,
@@ -772,20 +777,6 @@ describe('OAuth2 Flows Functionality', () => {
       grantType: 'token',
     };
 
-    const tokenParamsInactive = {
-      clientId: registeredClient2._id,
-      userId: registeredUser2._id,
-      audience: registeredClient.hostUri,
-      value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient.hostUri,
-        sub:registeredUser2._id,
-        scope: ['write'],
-        clientId: registeredClient2._id,
-      }),
-      scope: ['write'],
-      grantType: 'code',
-    };
-
     // Middleware for before and after test cases
     const deleteAndCreateTokens = async () => {
       await deleteCollections(['accesstokens', 'refreshtokens']);
@@ -795,7 +786,6 @@ describe('OAuth2 Flows Functionality', () => {
       tokenResourceOwnerCredentials =
         await new accessTokenModel(tokenParamsResourceOwnerCredentials).save();
       tokenImplicit = await new accessTokenModel(tokenParamsImplicit).save();
-      tokenInactive = await new accessTokenModel(tokenParamsInactive).save();
 
       refreshTokenClientCredentials = await new refreshTokenModel({
         value: refreshTokenValueGenerator(),
@@ -813,16 +803,11 @@ describe('OAuth2 Flows Functionality', () => {
         value: refreshTokenValueGenerator(),
         accessTokenId: tokenImplicit._id,
       }).save();
-      inactiveRefreshToken = await new refreshTokenModel({
-        value: refreshTokenValueGenerator(),
-        accessTokenId: tokenInactive._id,
-      }).save();
 
       await tokenClientCredentials.populate('clientId').execPopulate();
       await tokenAuthorizationCode.populate('clientId').execPopulate();
       await tokenResourceOwnerCredentials.populate('clientId').execPopulate();
       await tokenImplicit.populate('clientId').execPopulate();
-      await tokenInactive.populate('clientId').execPopulate();
     };
 
     before(deleteAndCreateTokens);

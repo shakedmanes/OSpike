@@ -27,7 +27,7 @@ const clientSchema = new Schema({
     validate: redirectUrisValidator,
   },
   hostUri: {
-    type: String,
+    type: [String],
     unique: true,
     required: true,
     validate: hostUriRegexValidator,
