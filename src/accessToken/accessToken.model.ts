@@ -1,6 +1,6 @@
 // accessToken.model
 
-import { Schema, model, HookNextFunction } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import { collectionName as ClientModelName } from '../client/client.interface';
 import { collectionName as UserModelName } from '../user/user.interface';
 import { IAccessToken, collectionName } from './accessToken.interface';
@@ -61,23 +61,26 @@ const accessTokenSchema = new Schema(
 // Ensures there's only one token for user in specific client app and audience
 accessTokenSchema.index({ clientId: 1, userId: 1, audience: 1 }, { unique: true });
 
-accessTokenSchema.pre<IAccessToken>('save', async function (this: IAccessToken, next) {
-  const foundToken = await accessTokenModel.findOne({
-    clientId: this.clientId,
-    ...(this.userId ? { userId: this.userId } : { userId : { $exists: false } }),
-    audience: this.audience,
+accessTokenSchema.pre<IAccessToken>(
+  'save',
+  async function (this: IAccessToken, next: any) {
+    const foundToken = await accessTokenModel.findOne({
+      clientId: this.clientId,
+      ...(this.userId ? { userId: this.userId } : { userId : { $exists: false } }),
+      audience: this.audience,
+    });
+
+    if (foundToken &&
+       (foundToken.expireAt.getTime() +
+       (config.ACCESS_TOKEN_EXPIRATION_TIME * 1000)) <= Date.now()) {
+      await foundToken.remove();
+    }
+
+    next();
   });
 
-  if (foundToken &&
-     (foundToken.expireAt.getTime() + (config.ACCESS_TOKEN_EXPIRATION_TIME * 1000)) <= Date.now()) {
-    await foundToken.remove();
-  }
-
-  next();
-});
-
 // Construct better error handling for errors from mongo server
-accessTokenSchema.post('save', (err, doc, next) => {
+accessTokenSchema.post('save', (err: any, doc: any, next: any) => {
   if (err.name === 'MongoError' && err.code === 11000) {
     err.message = errorMessages.DUPLICATE_ACCESS_TOKEN;
   }
