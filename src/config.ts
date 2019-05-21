@@ -1,7 +1,6 @@
 // config
 
 import { join } from 'path';
-import { hostname } from 'os';
 
 const config = {
   // Expiration Times - format in seconds for mongoose TTL expiration field
@@ -55,7 +54,7 @@ const config = {
   certificatePath: join(__dirname, 'certs/files/certificate.pem'),
 
   // JWT Configuration
-  issuerHostUri: `https://${hostname()}:${process.env.PORT}`,
+  issuerHostUri: `https://${process.env.HOSTNAME}`,
   jwtAlgorithm: 'RS256',
   jwksPath: join(__dirname, 'certs/files/jwks.json'),
 };

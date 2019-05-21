@@ -49,11 +49,12 @@ async (req: Request,
        callback: (error: any, client?: any) => void) => {
 
   const client = await clientModel.findOne({ id: clientId });
+  const ip = (req.headers['x-forwarded-for'] || '') as string;
 
   if (client &&
       clientSecret === client.secret &&
       (process.env.HOST_VALIDATION === '1' ?
-       await ipInHostnames([client.hostUri], req.ip) : true)) {
+       await ipInHostnames([client.hostUri], ip) : true)) {
     return callback(null, client);
   }
 

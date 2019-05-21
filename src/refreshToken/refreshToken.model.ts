@@ -22,7 +22,7 @@ const refreshTokenSchema = new Schema({
     ref: AccessTokenModelName,
     unique: true,
     required: true,
-    validate: accessTokenRefValidator,
+    validate: accessTokenRefValidator as any,
   },
   expireAt: {
     type: Date,
