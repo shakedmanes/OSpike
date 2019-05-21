@@ -7,14 +7,19 @@ import { authFailMessages } from './management.auth';
 import { errorMessages } from './management.routes';
 import clientModel from '../../client/client.model';
 import accessTokenModel from '../../accessToken/accessToken.model';
-import { deleteCollections, propertyOf, dismantleNestedProperties } from '../../test';
+import {
+  deleteCollections,
+  propertyOf,
+  dismantleNestedProperties,
+  lowerCasePropertiesValues,
+} from '../../test';
 import { InvalidParameter } from '../../utils/error';
 import app from '../../app';
 import config from '../../config';
 
 describe('Client Management Routes Functionality', () => {
 
-  const registerEndpoint = config.OAUTH_ENDPOINT + '/register';
+  const registerEndpoint = `${config.OAUTH_ENDPOINT}/${config.OAUTH_MANAGEMENT_ENDPOINT}`;
 
   const validClientInformation: IClientBasicInformation =  {
     name: 'TestName',
@@ -340,9 +345,20 @@ describe('Client Management Routes Functionality', () => {
           .expect((res) => {
             expect(res).to.nested.include({
               status: 200,
+              // Dismantle properties so chai can include them
               ...dismantleNestedProperties(
                 'body',
-                { ...updatedClient.toJSON(), ...updatedInformation },
+                {
+                  ...updatedClient.toJSON(),
+                  // Lowercase redirectUris and hostUri in update information
+                  ...lowerCasePropertiesValues(
+                    [
+                      propertyOf<IClientInformation>('redirectUris'),
+                      propertyOf<IClientInformation>('hostUri'),
+                    ],
+                    updatedInformation,
+                  ),
+                },
               ),
             });
           }).end(done);

@@ -21,6 +21,13 @@ import { isScopeEquals } from '../utils/isEqual';
 import config from '../config';
 import { BadRequest } from '../utils/error';
 
+// Error messages
+export const errorMessages = {
+  MISSING_AUDIENCE: 'The audience parameter is missing.',
+  MISSING_SCOPE_IN_CLIENT: `Client doesn't support client_credentials due incomplete scopes value.`,
+  MISSING_SCOPE: 'The scope parameter is missing.',
+};
+
 // TODO: create specified config files with grants types
 // TODO: create generated session key for each of the requests
 // TODO: refactor ensureLoggedIn binding
@@ -98,6 +105,7 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
         aud: ares.audience,
         sub: user._id,
         scope: ares.scope,
+        clientId: client.id,
       }),
       clientId: client._id,
       userId: user._id,
@@ -133,6 +141,7 @@ server.exchange(oauth2orize.exchange.code(
             aud: authCode.audience,
             sub: authCode.userId as string,
             scope: authCode.scopes,
+            clientId: client.id,
           }),
           clientId: (<IClient>authCode.clientId)._id,
           userId: authCode.userId,
@@ -179,7 +188,7 @@ server.exchange(oauth2orize.exchange.password(
 
     // Check if audience specified
     if (!body.audience) {
-      return done(new BadRequest('The audience parameter is missing.'));
+      return done(new BadRequest(errorMessages.MISSING_AUDIENCE));
     }
 
     // In the user model schema we authenticate via email & password so username should be the email
@@ -193,6 +202,7 @@ server.exchange(oauth2orize.exchange.password(
             scope,
             aud: body.audience,
             sub: user._id,
+            clientId: client.id,
           }),
           clientId: client._id,
           userId: user._id,
@@ -237,27 +247,27 @@ server.exchange(oauth2orize.exchange.clientCredentials(
     // If the client doesn't have actually scopes to grant authorization on
     // if (client.scopes.length === 0) {
     // tslint:disable-next-line:max-line-length
-    //   const errorMessage = `Client doesn't support client_credentials due incomplete scopes value`;
-    //   return done(new BadRequest(errorMessage));
+    //   return done(new BadRequest(errorMessages.MISSING_SCOPE_IN_CLIENT));
     // }
 
     // Check if audience specified
     if (!body.audience) {
-      return done(new BadRequest('The audience parameter is missing.'));
+      return done(new BadRequest(errorMessages.MISSING_AUDIENCE));
     }
 
     try {
-
+      // Change scopes values when working on scopes feature
       const accessToken = await new accessTokenModel({
         value: OAuth2Utils.createJWTAccessToken({
           aud: body.audience,
           sub: client._id,
-          scope: client.scopes,
+          scope: client.scopes, // Change this to body.scope
+          clientId: client.id,
         }),
         clientId: client._id,
         audience: body.audience,
         grantType: 'client_credentials',
-        scopes: client.scopes,
+        scopes: client.scopes, // Change this to body.scope
       }).save();
 
       // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3
@@ -289,26 +299,30 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
     populate: { path: 'clientId' },
   });
 
-  // Checking the refresh token was issued for the authenticated client
+  // Checking the refresh token was issued for the authenticated client.
+  // Also, checking if somehow an attacker managed to create refresh token for client credentials
+  // flow and avoid it.
   if (refreshTokenDoc &&
-      (<IClient>(<IAccessToken>refreshTokenDoc.accessTokenId).clientId).id === client.id) {
+      (<IClient>(<IAccessToken>refreshTokenDoc.accessTokenId).clientId).id === client.id &&
+      (<IAccessToken>refreshTokenDoc.accessTokenId).grantType !== 'client_credentials') {
     try {
+      // Need to delete previous access token and refresh token
+      await (<IAccessToken>refreshTokenDoc.accessTokenId).remove();
+      await refreshTokenDoc.remove();
+
       const accessToken = await new accessTokenModel({
         value: OAuth2Utils.createJWTAccessToken({
           aud: (<IAccessToken>refreshTokenDoc.accessTokenId).audience,
           sub: (<IAccessToken>refreshTokenDoc.accessTokenId).userId as string,
           scope: (<IAccessToken>refreshTokenDoc.accessTokenId).scopes,
+          clientId: (<IClient>(<IAccessToken>refreshTokenDoc.accessTokenId).clientId).id,
         }),
-        clientId: (<IAccessToken>refreshTokenDoc.accessTokenId).clientId,
+        clientId: (<IClient>(<IAccessToken>refreshTokenDoc.accessTokenId).clientId)._id,
         userId: (<IAccessToken>refreshTokenDoc.accessTokenId).userId,
         audience: (<IAccessToken>refreshTokenDoc.accessTokenId).audience,
         scopes: (<IAccessToken>refreshTokenDoc.accessTokenId).scopes,
         grantType: (<IAccessToken>refreshTokenDoc.accessTokenId).grantType,
       }).save();
-
-      // Need to delete previous access token and refresh token
-      await (<IAccessToken>refreshTokenDoc.accessTokenId).remove();
-      await refreshTokenDoc.remove();
 
       const newRefreshToken = await new refreshTokenModel({
         value: refreshTokenValueGenerator(),
@@ -384,7 +398,7 @@ export const authorizationEndpoint = [
 
     // Put on the oauth2 request information object the audience
     if (!req.query.audience) {
-      throw new BadRequest('The audience parameter is missing.');
+      throw new BadRequest(errorMessages.MISSING_AUDIENCE);
     }
 
     req.oauth2.info.audience = req.query.audience;
@@ -453,6 +467,8 @@ export const tokenIntrospectionEndpoint = [
 
       // If access token found and associated to the requester
       if (accessToken &&
+          (accessToken.expireAt.getTime() +
+           (config.ACCESS_TOKEN_EXPIRATION_TIME * 1000) > Date.now()) &&
           typeof accessToken.clientId === 'object' &&
           ((<IAccessToken>accessToken.clientId).id === req.user.id ||
           (accessToken.audienceClient && accessToken.audienceClient.id === req.user.id))) {

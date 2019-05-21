@@ -6,7 +6,7 @@ An OAuth2 authorization server supporting OpenID Connect
 
 Clone the project from github and install dependencies:
 
-    git clone https://github.com/shakedmanes/authorization-server.git    
+    git clone https://github.com/rabiran/OSpike.git    
     npm install
 
 After that, in `package.json` file, you'll find 3 `npm` scripts named: `generate-env-[prod/dev/test]`.
@@ -22,6 +22,8 @@ Adjust your settings in each one of them for generating appropriate `.env` file 
 > `-username`   The username of the db. e.g. `-username admin`
 >
 > `-password`   The password of the db user. e.g. `-password 123456`
+> 
+> `-hostValidation` Enabling host validation, value should be `0` for disable or `1` for enable. e.g. `-hostValidation 1` 
 
 And just run:
 

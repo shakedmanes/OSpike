@@ -32,7 +32,7 @@ export const errorMessages = {
 export const setManagementRoutes = (router: Router) => {
   // Register client endpoint
   router.post(
-    '/register',
+    config.OAUTH_MANAGEMENT_ENDPOINT,
     authenticateMiddleware,
     Wrapper.wrapAsync(async (req: Request, res: Response) => {
 
@@ -50,7 +50,7 @@ export const setManagementRoutes = (router: Router) => {
 
   // Read client information endpoint
   router.get(
-    '/register/:clientId',
+    `${config.OAUTH_MANAGEMENT_ENDPOINT}/:clientId`,
     authenticateManagementMiddleware,
     Wrapper.wrapAsync(async (req: Request, res: Response) => {
 
@@ -67,7 +67,7 @@ export const setManagementRoutes = (router: Router) => {
 
   // Update client information endpoint
   router.put(
-    '/register/:clientId',
+    `${config.OAUTH_MANAGEMENT_ENDPOINT}/:clientId`,
     authenticateManagementMiddleware,
     Wrapper.wrapAsync(async (req: Request, res: Response) => {
 
@@ -85,7 +85,7 @@ export const setManagementRoutes = (router: Router) => {
 
   // Delete client endpoint
   router.delete(
-    '/register/:clientId',
+    `${config.OAUTH_MANAGEMENT_ENDPOINT}/:clientId`,
     authenticateManagementMiddleware,
     Wrapper.wrapAsync(async (req: Request, res: Response) => {
 

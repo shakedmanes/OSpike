@@ -10,11 +10,14 @@
       "name": "Mocha Tests",
       "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
       "args": [
+        "-r",
+        "dotenv/config",
         "-u",
         "tdd",
         "--timeout",
         "999999",
         "--colors",
+        "--exit",
         "${workspaceFolder}/dist/test.js",
         "${workspaceFolder}/dist/**/*.spec.js"
       ],
@@ -27,8 +30,8 @@
       "program": "${workspaceFolder}\\dist\\server.js",
       "outFiles": [
         "${workspaceFolder}\\**\\*.js"
-
-      ]
+      ],
+      "envFile": "${workspaceFolder}/.env",
     },
 
   ]
