@@ -13,6 +13,7 @@ import config from '../config';
 
 export const errorMessages = {
   DUPLICATE_ACCESS_TOKEN: `There's already token for the client and the user and the audience.`,
+  DUPLICATE_ACCESS_TOKEN_WITHOUT_USER: `There's already token for the client and the audience.`,
 };
 
 const accessTokenSchema = new Schema(
@@ -21,13 +22,13 @@ const accessTokenSchema = new Schema(
       type: String,
       ref: ClientModelName,
       required: true,
-      validate: clientRefValidator,
+      validate: clientRefValidator as any,
     },
     userId: {
       type: String,
       ref: UserModelName,
       // required: true,
-      validate: userRefValidator,
+      validate: userRefValidator as any,
     },
     audience: {
       type: String,
@@ -80,9 +81,10 @@ accessTokenSchema.pre<IAccessToken>(
   });
 
 // Construct better error handling for errors from mongo server
-accessTokenSchema.post('save', (err: any, doc: any, next: any) => {
+accessTokenSchema.post('save', function save(this: IAccessToken, err: any, doc: any, next: any) {
   if (err.name === 'MongoError' && err.code === 11000) {
-    err.message = errorMessages.DUPLICATE_ACCESS_TOKEN;
+    err.message = this.userId ? errorMessages.DUPLICATE_ACCESS_TOKEN :
+                                errorMessages.DUPLICATE_ACCESS_TOKEN_WITHOUT_USER;
   }
 
   next(err);
