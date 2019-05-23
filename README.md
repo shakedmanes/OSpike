@@ -22,6 +22,8 @@ Adjust your settings in each one of them for generating appropriate `.env` file 
 > `-username`   The username of the db. e.g. `-username admin`
 >
 > `-password`   The password of the db user. e.g. `-password 123456`
+> 
+> `-hostValidation` Enabling host validation, value should be `0` for disable or `1` for enable. e.g. `-hostValidation 1` 
 
 And just run:
 

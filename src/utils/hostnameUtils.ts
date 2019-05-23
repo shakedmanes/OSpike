@@ -12,7 +12,8 @@ export const ipInHostnames = async (hostnames: string[], ip: string) => {
   // Resolve all the ips which relate in dns to the hostnames
   const ips = [];
   for (const hostname of hostnames) {
-    const result = await resolveHostnames(hostname);
+    const result =
+      await resolveHostnames(hostname.replace(new RegExp('(https://|:[0-9]{0,5})', 'gi'), ''));
     for (const resultIp of result) {
       ips.push(resultIp);
     }

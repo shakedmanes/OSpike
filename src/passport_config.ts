@@ -5,6 +5,7 @@ import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as BearerStrategy } from 'passport-http-bearer';
 import { Strategy as ClientPasswordStrategy } from 'passport-oauth2-client-password';
 import { BasicStrategy } from 'passport-http';
+import { Request } from 'express';
 
 import { ClientManagementAuthenticationStrategy } from './oauth2/management/management.auth';
 import userModel from './user/user.model';
@@ -13,6 +14,7 @@ import clientModel from './client/client.model';
 import accessTokenModel from './accessToken/accessToken.model';
 import config from './config';
 import { validatePasswordHash } from './utils/hashUtils';
+import { ipInHostnames } from './utils/hostnameUtils';
 
 /**
  * Local Strategy
@@ -41,10 +43,18 @@ passport.use(new LocalStrategy(
  * @param callback - callback to return to the strategy
  */
 const verifyFunction =
-async (clientId: string, clientSecret: string, callback: (error: any, client?: any) => void) => {
-  const client = await clientModel.findOne({ id: clientId });
+async (req: Request,
+       clientId: string,
+       clientSecret: string,
+       callback: (error: any, client?: any) => void) => {
 
-  if (client && clientSecret === client.secret) {
+  const client = await clientModel.findOne({ id: clientId });
+  const ip = (req.headers['x-forwarded-for'] || '') as string;
+
+  if (client &&
+      clientSecret === client.secret &&
+      (process.env.HOST_VALIDATION === '1' ?
+       await ipInHostnames([client.hostUri], ip) : true)) {
     return callback(null, client);
   }
 
@@ -62,7 +72,7 @@ async (clientId: string, clientSecret: string, callback: (error: any, client?: a
  * to the `Authorization` header).  While this approach is not recommended by
  * the specification, in practice it is quite common.
  */
-passport.use(new BasicStrategy(verifyFunction));
+passport.use(new BasicStrategy({ passReqToCallback: true }, verifyFunction));
 
 /**
  * Client Password strategy
@@ -71,7 +81,7 @@ passport.use(new BasicStrategy(verifyFunction));
  * using a client ID and client secret. The strategy requires a verify callback,
  * which accepts those credentials and calls done providing a client.
  */
-passport.use(new ClientPasswordStrategy(verifyFunction));
+passport.use(new ClientPasswordStrategy({ passReqToCallback: true }, verifyFunction));
 
 /**
  * BearerStrategy

@@ -34,41 +34,56 @@ export const redirectUrisValidator: [(this: IClient, value: string[]) => boolean
 
     // Include the route regex inside the host uri entered for validating correct redirect uris
     const redirectUriRegex = new RegExp('((\/([A-Za-z0-9]+[\-_]*)+)+)');
-    const regexesContainingHost = [];
+
+    // Object containing regex for each host uri redirect uris
+    const regexesContainingHost: { [host: string]: RegExp } = {};
+
+    // Minimum number of redirect uri required due the number of distinct hosts
     const minimumRedirectUris = this.hostUri.length;
-    // const regexContainingHost = new RegExp(`^${this.hostUri}${redirectUriRegex.source}$`);
+
+    // Set containing the regexes checked in the redirect uris received
+    const distinctRegexesChecked = new Set();
+
+    // First checking if there's more host uris than redirect uris
+    // (means there's missing redirect uri)
+    if (minimumRedirectUris > value.length) {
+      return false;
+    }
 
     // Creating regex for each hostUri redirect uris
     for (let hostIndex = 0; hostIndex < this.hostUri.length; hostIndex += 1) {
-      regexesContainingHost.push(
-        new RegExp(`^${this.hostUri[hostIndex]}${redirectUriRegex.source}$`),
-      );
+      regexesContainingHost[this.hostUri[hostIndex]] =
+        new RegExp(`^${this.hostUri[hostIndex]}${redirectUriRegex.source}$`);
     }
 
     let index = 0;
     let valid = value.length > 0 ? true : false;
-    let numRedirectUrisRelated = 0;
 
     // Iterate each redirect uri and check if it contains the host and valid
     while (valid && index < value.length) {
 
-      // Indicates if the redirectUri examined is related to some hostUri
-      let redirectUriRelatedToHost = false;
+      let hostInRedirectUri;
 
-      // Checking relation for each hostUri regex for specific redirectUri
-      for (let hostRegexIndex = 0;
-           !redirectUriRelatedToHost && hostRegexIndex < regexesContainingHost.length;
-           hostRegexIndex += 1) {
-        redirectUriRelatedToHost = regexesContainingHost[hostRegexIndex].test(value[index]);
+      // Extracting the host uri from the redirect uri
+      try {
+        hostInRedirectUri = new URL(value[index]).origin;
+      } catch (err) {
+        return false;
       }
 
-      valid = redirectUriRelatedToHost;
+      // Checking if the redirect uri have one of the host uris and appropriate format
+      if (regexesContainingHost[hostInRedirectUri] &&
+          regexesContainingHost[hostInRedirectUri].test(value[index])) {
+        distinctRegexesChecked.add(regexesContainingHost[hostInRedirectUri]);
+      } else {
+        valid = false;
+      }
+
       index += 1;
-      numRedirectUrisRelated += 1;
     }
 
     // Checing if the redirectUris are valid and there's enough redirectUris for all the hostnames
-    return (valid && numRedirectUrisRelated >= minimumRedirectUris);
+    return (valid && distinctRegexesChecked.size === minimumRedirectUris);
   },
   `Invalid redirectUris - {VALUE}, doesn't fit hostUri value`,
 ];
