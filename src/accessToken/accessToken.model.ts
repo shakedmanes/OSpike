@@ -94,7 +94,7 @@ accessTokenSchema.post('save', function save(this: IAccessToken, err: any, doc: 
 accessTokenSchema.virtual('audienceClient', {
   ref: ClientModelName,
   localField: 'audience',
-  foreignField: 'hostUri',
+  foreignField: 'audienceId',
   justOne: true,
 });
 

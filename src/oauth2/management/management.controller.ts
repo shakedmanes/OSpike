@@ -1,8 +1,10 @@
 // management.controller
 
+import { URL } from 'url';
 import {
   clientIdValueGenerator,
   clientSecretValueGenerator,
+  audienceIdValueGenerator,
   registrationTokenValueGenerator,
 } from '../../utils/valueGenerator';
 import { IClientBasicInformation, IClientInformation } from './management.interface';
@@ -13,9 +15,6 @@ import { ClientNotFound } from './management.error';
 // TODO: aggregate mongoose model properties
 
 export class ManagementController {
-
-  // Projection fields to exclude from client document
-  static readonly clientProjectionFields = { _id: 0, __v: 0 };
 
   /**
    * Registers client as relay party in authorization server
@@ -28,13 +27,13 @@ export class ManagementController {
     const clientDoc = await new clientModel({
       id: clientIdValueGenerator(),
       secret: clientSecretValueGenerator(),
+      audienceId: audienceIdValueGenerator(),
       registrationToken: registrationTokenValueGenerator(),
       ...clientInformation,
-      hostUri: clientInformation.hostUri.toLowerCase(), // Override the hostUri to lowercases
-      redirectUris:
-        clientInformation.redirectUris.map(
-          val => val.replace(clientInformation.hostUri, clientInformation.hostUri.toLowerCase()),
-        ),
+      // Override the hostUris to lowercases
+      hostUri: clientInformation.hostUri.map(val => val.toLowerCase()),
+      // Override the redirectUris to lowercases
+      redirectUris: clientInformation.redirectUris.map(val => new URL(val).toString()),
     }).save();
 
     return clientDoc;
@@ -72,26 +71,39 @@ export class ManagementController {
 
     if (clientDoc) {
 
-      // If we update the hostUri, we need to update the current redirectUris with the new hostUri
-      if (clientInformation.hostUri && clientInformation.hostUri !== clientDoc.hostUri) {
-        const clientHostUri = clientInformation.hostUri;
-        clientInformation.hostUri = clientInformation.hostUri.toLowerCase();
-        const regHostsUri = new RegExp(
-          `(${clientDoc.hostUri}|${clientHostUri})`,
-        );
-
-        for (let index = 0; index < clientDoc.redirectUris.length; index += 1) {
-          clientDoc.redirectUris[index] =
-            clientDoc.redirectUris[index].replace(regHostsUri, clientInformation.hostUri);
-        }
-
-        if (clientInformation.redirectUris) {
-          for (let index = 0; index < clientInformation.redirectUris.length; index += 1) {
-            clientInformation.redirectUris[index] =
-              clientInformation.redirectUris[index].replace(regHostsUri, clientInformation.hostUri);
-          }
-        }
+      // Lowercase all the hostUris if exist
+      if (clientInformation.hostUri) {
+        clientInformation.hostUri = clientInformation.hostUri.map(val => val.toLowerCase());
       }
+
+      // Lowercase all the redirectUris if exist
+      if (clientInformation.redirectUris) {
+        clientInformation.redirectUris =
+          clientInformation.redirectUris.map(val => new URL(val).toString());
+      }
+
+      // tslint:disable-next-line:max-line-length
+      // // If we update the hostUri, we need to update the current redirectUris with the new hostUri
+      // if (clientInformation.hostUri && clientInformation.hostUri !== clientDoc.hostUri) {
+      //   const clientHostUri = clientInformation.hostUri;
+      //   clientInformation.hostUri = clientInformation.hostUri.toLowerCase();
+      //   const regHostsUri = new RegExp(
+      //     `(${clientDoc.hostUri}|${clientHostUri})`,
+      //   );
+
+      //   for (let index = 0; index < clientDoc.redirectUris.length; index += 1) {
+      //     clientDoc.redirectUris[index] =
+      //       clientDoc.redirectUris[index].replace(regHostsUri, clientInformation.hostUri);
+      //   }
+
+      //   if (clientInformation.redirectUris) {
+      //     for (let index = 0; index < clientInformation.redirectUris.length; index += 1) {
+      //       clientInformation.redirectUris[index] =
+      // tslint:disable-next-line:max-line-length
+      //         clientInformation.redirectUris[index].replace(regHostsUri, clientInformation.hostUri);
+      //     }
+      //   }
+      // }
 
       Object.assign(clientDoc, clientInformation);
       await clientDoc.save();

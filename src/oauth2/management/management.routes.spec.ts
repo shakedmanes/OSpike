@@ -23,28 +23,29 @@ describe('Client Management Routes Functionality', () => {
 
   const validClientInformation: IClientBasicInformation =  {
     name: 'TestName',
-    hostUri: 'https://test.com',
+    hostUri: ['https://test.com'],
     redirectUris: ['https://test.com/callback'],
   };
 
   const validClientInformation2: IClientBasicInformation = {
     name: 'TestNameShouldNotWork',
-    hostUri: 'https://testshouldnotwork.com',
+    hostUri: ['https://testshouldnotwork.com'],
     redirectUris: ['https://testshouldnotwork.com/callback'],
   };
 
   const validClientInformation3: IClientBasicInformation = {
     name: 'TestNameShouldNotWork2',
-    hostUri: 'https://testshouldnotwork2.com',
+    hostUri: ['https://testshouldnotwork2.com'],
     redirectUris: ['https://testshouldnotwork2.com/callback'],
   };
 
   let clientRegistrer = new clientModel({
     id: 'abcd1234567',
     secret: 'clientRegistrerSecret',
+    audienceId: 'clientRegistereAudienceId',
     registrationToken: 'clientRegistretRegistrationToken',
     name: 'ClientRegistrer',
-    hostUri: 'https://client.register.com',
+    hostUri: ['https://client.register.com'],
     redirectUris: ['https://client.register.com/callback'],
     scopes: [config.CLIENT_MANAGER_SCOPE],
   });
@@ -52,9 +53,10 @@ describe('Client Management Routes Functionality', () => {
   let notClientRegistrer = new clientModel({
     id: 'notclientRegistrer123',
     secret: 'notClientRegistrer123Secret',
+    audienceId: 'notClientRegistereAudienceId',
     registrationToken: 'notClientRegistrerRegistrationTokenBlaBla',
     name: 'notClientRegistrer',
-    hostUri: 'https://verynotclient.register.com',
+    hostUri: ['https://verynotclient.register.com'],
     redirectUris: ['https://verynotclient.register.com/callback'],
     scopes: ['blabla'],
   });
@@ -62,9 +64,10 @@ describe('Client Management Routes Functionality', () => {
   let registeredClient = new clientModel({
     id: 'registeredClientId',
     secret: 'registeredClientSecret',
+    audienceId: 'registeredClientAudienceId',
     registrationToken: 'registeredClientRegistrationTokenBlaBla',
     name: 'registeredClient',
-    hostUri: 'https://registeredClient.register.com',
+    hostUri: ['https://registeredClient.register.com'],
     redirectUris: ['https://registeredClient.register.com/callback'],
     scopes: ['something'],
   });
@@ -72,9 +75,10 @@ describe('Client Management Routes Functionality', () => {
   let updatedClient = new clientModel({
     id: 'updatedClientId',
     secret: 'updatedClientSecret',
+    audienceId: 'updatedClientAudienceId',
     registrationToken: 'updatedClientRegistrationTokenBlaBla',
     name: 'updatedClient',
-    hostUri: 'https://updatedClient.register.com',
+    hostUri: ['https://updatedClient.register.com'],
     redirectUris: ['https://updatedClient.register.com/callback'],
     scopes: ['something-new'],
   });
@@ -82,9 +86,10 @@ describe('Client Management Routes Functionality', () => {
   let updatedClient2 = new clientModel({
     id: 'updatedClientId2',
     secret: 'updatedClientSecret2',
+    audienceId: 'updatedClient2AudienceId',
     registrationToken: 'updatedClientRegistrationTokenBlaBla2',
     name: 'updatedClient2',
-    hostUri: 'https://updatedClient2.register.com',
+    hostUri: ['https://updatedClient2.register.com'],
     redirectUris: ['https://updatedClient2.register.com/callback'],
     scopes: ['something-new2'],
   });
@@ -92,9 +97,10 @@ describe('Client Management Routes Functionality', () => {
   let deletedClient = new clientModel({
     id: 'deletedClient',
     secret: 'deletedClientSecret',
+    audienceId: 'deletedClientAudienceId',
     registrationToken: 'deletedClientRegistrationToken',
     name: 'deletedClientName',
-    hostUri: 'https://deletedClient.com',
+    hostUri: ['https://deletedClient.com'],
     redirectUris: ['https://deletedClient.com/callback'],
     scopes: ['something-new-delete'],
   });
@@ -102,35 +108,22 @@ describe('Client Management Routes Functionality', () => {
   let deletedClient2 = new clientModel({
     id: 'deletedClient2',
     secret: 'deletedClientSecret2',
+    audienceId: 'deletedClient2AudienceId',
     registrationToken: 'deletedClientRegistrationToken2',
     name: 'deletedClientName2',
-    hostUri: 'https://deletedClient2.com',
+    hostUri: ['https://deletedClient2.com'],
     redirectUris: ['https://deletedClient2.com/callback'],
     scopes: ['something-new-delete2'],
   });
 
   const updatedInformation: IClientBasicInformation = {
     name: 'newUpdatedClientName',
-    hostUri: 'https://updatedClient.reg',
-    redirectUris: ['https://updatedClient.reg/callback', 'https://updatedClient.reg/redirect'],
-  };
-
-  const updatedInformation2: IClientBasicInformation = {
-    name: 'newUpdatedClientName2',
-    hostUri: 'https://updatedClient2',
-    redirectUris: ['https://updatedClient2/callback', 'https://updatedClient2/redirect'],
-  };
-
-  const updatedInformation3: IClientBasicInformation = {
-    name: 'newUpdatedClientName3',
-    hostUri: 'https://updatedClient3',
-    redirectUris: ['https://updatedClient3/callback', 'https://updatedClient3/redirect'],
-  };
-
-  const updatedInformation4: IClientBasicInformation = {
-    name: 'newUpdatedClientName4',
-    hostUri: 'https://updatedClient4',
-    redirectUris: ['https://updatedClient4/callback', 'https://updatedClient4/redirect'],
+    hostUri: ['https://updatedClient.reg', 'https://updatedClient2.reg'],
+    redirectUris: [
+      'https://updatedClient.reg/callback',
+      'https://updatedClient.reg/redirect',
+      'https://updatedClient2.reg/callback',
+    ],
   };
 
   // Will be created in before hook
@@ -378,18 +371,6 @@ describe('Client Management Routes Functionality', () => {
           .end(done);
        },
      );
-
-    it(`Should not update existing client information by invalid registration token`,
-       (done) => {
-         request(app)
-          .put(`${registerEndpoint}/${updatedClient.id}`)
-          .set(config.CLIENT_MANAGER_AUTHORIZATION_HEADER, clientRegistrerAccessToken.value)
-          .set('Authorization', 'invalidRegistrationToken')
-          .send({ clientInformation: updatedInformation })
-          .expect(400, { message: authFailMessages.INVALID_REG_TOKEN_OR_CLIENT_ID })
-          .end(done);
-       },
-    );
 
     it(`Should not update existing client information without client manger token header`,
        (done) => {

@@ -2,6 +2,7 @@
 
 import { refValidator, uniqueValidator } from '../generic/generic.validator';
 import { collectionName, IClient } from './client.interface';
+import { URL } from 'url';
 
 // Client reference validator
 export const clientRefValidator = [

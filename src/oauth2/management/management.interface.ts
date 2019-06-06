@@ -14,5 +14,6 @@ export interface IClientBasicInformation {
 export interface IClientInformation extends IClientBasicInformation {
   id: IClient['id'];
   secret: IClient['secret'];
+  audienceId: IClient['audienceId'];
   registrationToken: IClient['registrationToken'];
 }

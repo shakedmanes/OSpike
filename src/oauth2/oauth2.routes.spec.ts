@@ -6,9 +6,7 @@ import app from '../app';
 import config from '../config';
 import {
   deleteCollections,
-  propertyOf,
   dismantleNestedProperties,
-  lowerCasePropertiesValues,
 } from '../test';
 import accessTokenModel, {
   errorMessages as tokenErrorMessages,
@@ -16,7 +14,6 @@ import accessTokenModel, {
 import clientModel from '../client/client.model';
 import refreshTokenModel from '../refreshToken/refreshToken.model';
 import { IClient } from '../client/client.interface';
-import { IUser } from '../user/user.interface';
 import { OAuth2Utils, JWTPayload } from './oauth2.utils';
 import { refreshTokenValueGenerator } from '../utils/valueGenerator';
 import { IAccessToken } from '../accessToken/accessToken.interface';
@@ -85,13 +82,6 @@ interface ITokenClaims extends Required<ITokenOptions> {
   iat: number;
   exp: number;
   iss: string;
-}
-
-interface IResponseBodyTemplate {
-  access_token: string;
-  refresh_token?: string;
-  expires_in: number;
-  token_type: string;
 }
 
 enum GrantType { CODE, IMPLICIT, CLIENT_CREDENTIALS, PASSWORD, REFRESH_TOKEN }
@@ -211,9 +201,10 @@ describe('OAuth2 Flows Functionality', () => {
   let registeredClient = new clientModel({
     id: 'registeredClientId',
     secret: 'registeredClientSecret',
+    audienceId: 'registeredClientAudienceId',
     registrationToken: 'registeredClientRegistrationTokenBlaBla',
     name: 'registeredClient',
-    hostUri: 'https://registeredClient.register.com',
+    hostUri: ['https://registeredClient.register.com'],
     redirectUris: ['https://registeredClient.register.com/callback'],
     scopes: ['something'],
   });
@@ -221,9 +212,10 @@ describe('OAuth2 Flows Functionality', () => {
   let registeredClient2 = new clientModel({
     id: 'registeredClientId2',
     secret: 'registeredClientSecert2',
+    audienceId: 'registeredClientAudienceId2',
     registrationToken: 'registreredClientRegistrationTokebBlaBla2',
     name: 'registeredClient2',
-    hostUri: 'https://registeredClient2.register.com',
+    hostUri: ['https://registeredClient2.register.com'],
     redirectUris: ['https://registeredClient2.register.com/callback2'],
     scopes: ['something2'],
   });
@@ -231,9 +223,10 @@ describe('OAuth2 Flows Functionality', () => {
   let registeredClient3 = new clientModel({
     id: 'registeredClientId3',
     secret: 'registeredClientSecert3',
+    audienceId: 'registeredClientAudienceId3',
     registrationToken: 'registreredClientRegistrationTokebBlaBla3',
     name: 'registeredClient3',
-    hostUri: 'https://registeredClient3.register.com',
+    hostUri: ['https://registeredClient3.register.com'],
     redirectUris: ['https://registeredClient3.register.com/callback3'],
     scopes: ['something3'],
   });
@@ -677,7 +670,7 @@ describe('OAuth2 Flows Functionality', () => {
                   );
          expect(response).to.nested.include({
            status: 400,
-           'body.message': tokenErrorMessages.DUPLICATE_ACCESS_TOKEN,
+           'body.message': tokenErrorMessages.DUPLICATE_ACCESS_TOKEN_WITHOUT_USER,
          });
 
        },
@@ -724,9 +717,9 @@ describe('OAuth2 Flows Functionality', () => {
 
     const tokenParamsClientCredentials = {
       clientId: registeredClient._id,
-      audience: registeredClient2.hostUri,
+      audience: registeredClient2.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient2.hostUri,
+        aud: registeredClient2.audienceId,
         sub: registeredClient._id,
         scope: ['read'],
         clientId: registeredClient._id,
@@ -738,9 +731,9 @@ describe('OAuth2 Flows Functionality', () => {
     const tokenParamsAuthorizationCode = {
       clientId: registeredClient._id,
       userId: registeredUser._id,
-      audience: registeredClient2.hostUri,
+      audience: registeredClient2.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient2.hostUri,
+        aud: registeredClient2.audienceId,
         sub: registeredUser._id,
         scope: ['write'],
         clientId: registeredClient._id,
@@ -752,9 +745,9 @@ describe('OAuth2 Flows Functionality', () => {
     const tokenParamsResourceOwnerCredentials = {
       clientId: registeredClient._id,
       userId: registeredUser._id,
-      audience: registeredClient3.hostUri,
+      audience: registeredClient3.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient3.hostUri,
+        aud: registeredClient3.audienceId,
         sub: registeredUser._id,
         scope: ['write'],
         clientId: registeredClient._id,
@@ -766,9 +759,9 @@ describe('OAuth2 Flows Functionality', () => {
     const tokenParamsImplicit = {
       clientId: registeredClient3._id,
       userId: registeredUser._id,
-      audience: registeredClient.hostUri,
+      audience: registeredClient.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient.hostUri,
+        aud: registeredClient.audienceId,
         sub: registeredUser._id,
         scope: ['write'],
         clientId: registeredClient._id,
@@ -1292,9 +1285,9 @@ describe('OAuth2 Flows Functionality', () => {
 
     let validToken = new accessTokenModel({
       clientId: registeredClient._id,
-      audience: registeredClient2.hostUri,
+      audience: registeredClient2.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient2.hostUri,
+        aud: registeredClient2.audienceId,
         sub: registeredClient._id,
         scope: ['read'],
         clientId: registeredClient._id,
@@ -1306,9 +1299,9 @@ describe('OAuth2 Flows Functionality', () => {
     let validToken2 = new accessTokenModel({
       clientId: registeredClient._id,
       userId: registeredUser._id,
-      audience: registeredClient2.hostUri,
+      audience: registeredClient2.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient2.hostUri,
+        aud: registeredClient2.audienceId,
         sub: registeredUser._id,
         scope: ['write'],
         clientId: registeredClient._id,
@@ -1319,9 +1312,9 @@ describe('OAuth2 Flows Functionality', () => {
 
     let validInactiveToken = new accessTokenModel({
       clientId: registeredClient2._id,
-      audience: registeredClient.hostUri,
+      audience: registeredClient.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient.hostUri,
+        aud: registeredClient.audienceId,
         sub: registeredClient2._id,
         scope: ['write'],
         clientId: registeredClient2._id,
@@ -1436,7 +1429,7 @@ describe('OAuth2 Flows Functionality', () => {
       });
 
       const unexistToken2 = OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient3.hostUri,
+        aud: registeredClient3.audienceId,
         sub: registeredClient2._id,
         scope: ['something2'],
         clientId: registeredClient2.id,
