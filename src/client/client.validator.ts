@@ -10,8 +10,8 @@ export const clientRefValidator = [
   `Reference Error - ${collectionName} {VALUE} does not exist`,
 ];
 
-// HostUri regex validator
-export const hostUriRegexValidator: [(value: string[]) => boolean, string] = [
+// HostUris regex validator
+export const hostUrisRegexValidator: [(value: string[]) => boolean, string] = [
   (value: string[]): boolean => {
     // Regex for host uri containing https and maybe port
     // tslint:disable-next-line:max-line-length
@@ -40,7 +40,7 @@ export const redirectUrisValidator: [(this: IClient, value: string[]) => boolean
     const regexesContainingHost: { [host: string]: RegExp } = {};
 
     // Minimum number of redirect uri required due the number of distinct hosts
-    const minimumRedirectUris = this.hostUri.length;
+    const minimumRedirectUris = this.hostUris.length;
 
     // Set containing the regexes checked in the redirect uris received
     const distinctRegexesChecked = new Set();
@@ -52,9 +52,9 @@ export const redirectUrisValidator: [(this: IClient, value: string[]) => boolean
     }
 
     // Creating regex for each hostUri redirect uris
-    for (let hostIndex = 0; hostIndex < this.hostUri.length; hostIndex += 1) {
-      regexesContainingHost[this.hostUri[hostIndex]] =
-        new RegExp(`^${this.hostUri[hostIndex]}${redirectUriRegex.source}$`);
+    for (let hostIndex = 0; hostIndex < this.hostUris.length; hostIndex += 1) {
+      regexesContainingHost[this.hostUris[hostIndex]] =
+        new RegExp(`^${this.hostUris[hostIndex]}${redirectUriRegex.source}$`);
     }
 
     let index = 0;
@@ -86,5 +86,5 @@ export const redirectUrisValidator: [(this: IClient, value: string[]) => boolean
     // Checing if the redirectUris are valid and there's enough redirectUris for all the hostnames
     return (valid && distinctRegexesChecked.size === minimumRedirectUris);
   },
-  `Invalid redirectUris - {VALUE}, doesn't fit hostUri value`,
+  `Invalid redirectUris - {VALUE}, doesn't fit hostUris value`,
 ];

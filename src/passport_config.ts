@@ -54,7 +54,7 @@ async (req: Request,
   if (client &&
       clientSecret === client.secret &&
       (process.env.HOST_VALIDATION === '1' ?
-       await ipInHostnames(client.hostUri, ip) : true)) {
+       await ipInHostnames(client.hostUris, ip) : true)) {
     return callback(null, client);
   }
 

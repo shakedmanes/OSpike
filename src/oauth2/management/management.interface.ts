@@ -6,7 +6,7 @@ import { IClient } from '../../client/client.interface';
 export interface IClientBasicInformation {
   name: IClient['name'];
   redirectUris: IClient['redirectUris'];
-  hostUri: IClient['hostUri'];
+  hostUris: IClient['hostUris'];
   scopes?: IClient['scopes'];
 }
 

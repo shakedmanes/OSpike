@@ -13,14 +13,14 @@ describe('Client Management Operations Functionality', async () => {
   // Setting data mocks
   const clientBasicMock: IClientBasicInformation = {
     name: 'TestClient',
-    hostUri: ['https://test.client', 'https://testing.client'],
+    hostUris: ['https://test.client', 'https://testing.client'],
     redirectUris: ['https://test.client/callback', 'https://testing.client/callback'],
     scopes: ['read'],
   };
 
   const clientBasicMock2: IClientBasicInformation = {
     name: 'TestClient2',
-    hostUri: ['https://test2.client'],
+    hostUris: ['https://test2.client'],
     redirectUris: ['https://test2.client/callback2'],
   };
 
@@ -31,7 +31,7 @@ describe('Client Management Operations Functionality', async () => {
     audienceId: 'audienceIdRegisteredClient',
     registrationToken: 'blablaregistrationtoken',
     name: 'RegisterdClient',
-    hostUri: ['https://www.www'],
+    hostUris: ['https://www.www'],
     redirectUris: ['https://www.www/callback'],
     scopes: ['read'],
   });
@@ -42,7 +42,7 @@ describe('Client Management Operations Functionality', async () => {
     audienceId: 'audienceIdRegisteredClient2',
     registrationToken: 'registrationtokenofclient',
     name: 'RegisterdClient2',
-    hostUri: ['https://www2.www2'],
+    hostUris: ['https://www2.www2'],
     redirectUris: ['https://www2.www2/callback'],
   });
 
@@ -50,10 +50,20 @@ describe('Client Management Operations Functionality', async () => {
     id: '129305023',
     secret: 'supersecretkey',
     audienceId: 'audienceIdRegisteredClient3',
-    registrationToken: 'registrationTokenOfClient',
+    registrationToken: 'registrationTokenOfClient3',
     name: 'RegisterdClient3',
-    hostUri: ['https://www3.www3'],
-    redirectUris: ['https://www3.www3/callback'],
+    hostUris: ['https://www3.www3', 'https://www555.www555'],
+    redirectUris: ['https://www3.www3/callback', 'https://www555.www555/callback'],
+  });
+
+  let registerdClient4 = new clientModel({
+    id: '1235001023',
+    secret: 'verysuperultrasecret',
+    audienceId: 'registeredClient4AudienceId',
+    registrationToken: 'registrationTokenRegisterdClient4',
+    name: 'registerdClient4',
+    hostUris: ['https://wowow.okokok'],
+    redirectUris: ['https://wowow.okokok/callback', 'https://wowow.okokok/callback/redirect'],
   });
 
   // Clients for delete queries
@@ -63,7 +73,7 @@ describe('Client Management Operations Functionality', async () => {
     audienceId: 'audienceIdDeletedClient',
     registrationToken: 'clienttokenregistration',
     name: 'deleteClient',
-    hostUri: ['https://rlwrwrwok.w'],
+    hostUris: ['https://rlwrwrwok.w'],
     redirectUris: ['https://rlwrwrwok.w/callback'],
     scopes: ['read'],
   });
@@ -74,70 +84,77 @@ describe('Client Management Operations Functionality', async () => {
     audienceId: 'audienceIdDeletedClient2',
     registrationToken: 'uniqueextraordinaryregistrationtoken',
     name: 'deleteClient2',
-    hostUri: ['https://ewewewewewewsss'],
+    hostUris: ['https://ewewewewewewsss'],
     redirectUris: ['https://ewewewewewewsss/callback'],
   });
 
-  // Invalid client by hostUri
-  const invalidClientHostUri: IClientBasicInformation = {
-    name: 'invalidClientHostUri',
-    hostUri: ['http://wrwrw'],
+  // Invalid client by hostUris
+  const invalidClientHostUris: IClientBasicInformation = {
+    name: 'invalidClientHostUris',
+    hostUris: ['http://wrwrw'],
     redirectUris: ['http://wrwrw/callback'],
   };
 
-  // Invalid client by hostUri and redirectUris
-  const invalidClientHostUri2: IClientBasicInformation = {
-    name: 'invalidClientHostUri2',
-    hostUri: ['rrrrrrererere'],
+  // Invalid client by hostUriss and redirectUris
+  const invalidClientHostUris2: IClientBasicInformation = {
+    name: 'invalidClientHostUris2',
+    hostUris: ['rrrrrrererere'],
     redirectUris: ['rrrrrrererere/callback'],
   };
 
   // Invalid client by hostUri without redirect uri
   const invalidClientMissingRedirectUri: IClientBasicInformation = {
     name: 'InvalidClientMissingRedirectUri',
-    hostUri: ['https://something.new', 'https://something.old'],
+    hostUris: ['https://something.new', 'https://something.old'],
     redirectUris: ['https://something.new/callback'],
   };
 
   // Invalid client by redirectUris
   const invalidClientRedirectUris: IClientBasicInformation = {
     name: 'invalidClientRedirectUris',
-    hostUri: ['https://www.eeee.eee'],
+    hostUris: ['https://www.eeee.eee'],
     redirectUris: ['/callback'],
   };
 
   // Invalid client by redirectUris
   const invalidClientRedirectUris2: IClientBasicInformation = {
     name: 'invalidClientRedirectUris2',
-    hostUri: ['https://rrlrlrllr'],
+    hostUris: ['https://rrlrlrllr'],
     redirectUris: ['https://rrrrrr/wwwww/callback'],
   };
 
   // Invalid client by redirectUris
   const invalidClientRedirectUris3: IClientBasicInformation = {
     name: 'invalidClientRedirectUris3',
-    hostUri: ['https://relremwle'],
+    hostUris: ['https://relremwle'],
     redirectUris: ['https://relremwle/callback', '/callback'],
   };
 
   // Invalid client by duplicate name
   const invalidClientDupName: IClientBasicInformation = {
     name: registerdClient.name,
-    hostUri: ['https://somehost'],
+    hostUris: ['https://somehost'],
     redirectUris: ['https://somehost/callback'],
   };
 
   // Invalid client by duplicate host
   const invalidClientDupHost: IClientBasicInformation = {
     name: 'invalidClientDupHost',
-    hostUri: registerdClient.hostUri,
+    hostUris: registerdClient.hostUris,
     redirectUris: ['https://somehost/callback'],
+  };
+
+  // Invalid client by duplicate host (more than one host)
+  const invalidClientDupHostMult: IClientBasicInformation = {
+    name: 'invalidClientDupHostMult',
+    hostUris: registerdClient3.hostUris,
+    redirectUris: registerdClient3.hostUris.map((val, index) => val + `/unexistredirect${index}`),
   };
 
   /** Valid information to update on clients */
   const validUpdateClientInfo: IClientBasicInformation = {
     name: 'UpdatedRegisteredClient',
-    hostUri: ['https://new.url'],
+    hostUris: ['https://new.url'],
     redirectUris: ['https://new.url/callbacks'],
     scopes: ['write'],
   };
@@ -148,8 +165,8 @@ describe('Client Management Operations Functionality', async () => {
   };
 
   /** Invalid information to update on clients */
-  const invalidUpdateClientInfoHostUri: Partial<IClientBasicInformation> = {
-    hostUri: ['https://new.url.will.fail:3200'],
+  const invalidUpdateClientInfoHostUris: Partial<IClientBasicInformation> = {
+    hostUris: ['https://new.url.will.fail:3200'],
   };
 
   const invalidUpdateClientInfoRedirectUris: Partial<IClientBasicInformation> = {
@@ -163,6 +180,7 @@ describe('Client Management Operations Functionality', async () => {
     registerdClient = await registerdClient.save();
     registerdClient2 = await registerdClient2.save();
     registerdClient3 = await registerdClient3.save();
+    registerdClient4 = await registerdClient4.save();
 
     deleteClient = await deleteClient.save();
     deleteClient2 = await deleteClient2.save();
@@ -202,9 +220,9 @@ describe('Client Management Operations Functionality', async () => {
       ]);
     });
 
-    it('Should not create client and raise hostUri validation error', () => {
-      const invalidClientError = ManagementController.registerClient(invalidClientHostUri);
-      const invalidClientError2 = ManagementController.registerClient(invalidClientHostUri2);
+    it('Should not create client and raise hostUris validation error', () => {
+      const invalidClientError = ManagementController.registerClient(invalidClientHostUris);
+      const invalidClientError2 = ManagementController.registerClient(invalidClientHostUris2);
       const invalidClientError3 =
         ManagementController.registerClient(invalidClientMissingRedirectUri);
 
@@ -233,7 +251,13 @@ describe('Client Management Operations Functionality', async () => {
       return expect(invalidClientError).to.be.rejectedWith(mongoose.ValidationError);
     });
 
-    it('Should not create client and raise duplicate hostUri validation error', () => {
+    it('Should not create client and raise duplicate hostUris (multiple) validation error', () => {
+      const invalidClientError = ManagementController.registerClient(invalidClientDupHostMult);
+
+      return expect(invalidClientError).to.be.rejectedWith(mongoose.ValidationError);
+    });
+
+    it('Should not create client and raise duplicate hostUris (single) validation error', () => {
       const invalidClientError = ManagementController.registerClient(invalidClientDupHost);
 
       return expect(invalidClientError).to.be.rejectedWith(mongoose.ValidationError);
@@ -246,13 +270,13 @@ describe('Client Management Operations Functionality', async () => {
 
     it('Should not create client without name and raise name validation error', () => {
       return expect(ManagementController.registerClient({
-        hostUri: ['https://default.host'],
+        hostUris: ['https://default.host'],
         redirectUris: ['https://default.host/callback'],
       } as IClientBasicInformation))
       .to.be.rejectedWith(mongoose.ValidationError);
     });
 
-    it('Should not create client without hostUri and raise hostUri validation error', () => {
+    it('Should not create client without hostUris and raise hostUris validation error', () => {
       return expect(ManagementController.registerClient({
         name: 'SomeExampleApp',
         redirectUris: ['https://unknown/callback'],
@@ -263,7 +287,7 @@ describe('Client Management Operations Functionality', async () => {
        () => {
          return expect(ManagementController.registerClient({
            name: 'SomeExampleApplication',
-           hostUri: ['https://design.com'],
+           hostUris: ['https://design.com'],
          } as IClientBasicInformation)).to.be.rejectedWith(mongoose.ValidationError);
        },
     );
@@ -344,7 +368,7 @@ describe('Client Management Operations Functionality', async () => {
 
     it('Should not update exisiting client only with hostUri without updating redirectUris', () => {
       return expect(
-        ManagementController.updateClient(registerdClient2.id, invalidUpdateClientInfoHostUri),
+        ManagementController.updateClient(registerdClient2.id, invalidUpdateClientInfoHostUris),
       ).to.be.rejectedWith(mongoose.ValidationError);
     });
 
@@ -372,11 +396,11 @@ describe('Client Management Operations Functionality', async () => {
          return Promise.all([
            expect(ManagementController.updateClient(
              registerdClient.id,
-             { hostUri: invalidClientHostUri.hostUri },
+             { hostUris: invalidClientHostUris.hostUris },
            )).to.be.rejectedWith(mongoose.ValidationError),
            expect(ManagementController.updateClient(
             registerdClient2.id,
-            { hostUri: invalidClientHostUri2.hostUri },
+            { hostUris: invalidClientHostUris2.hostUris },
            )).to.be.rejectedWith(mongoose.ValidationError),
          ]);
        },
@@ -410,12 +434,22 @@ describe('Client Management Operations Functionality', async () => {
       )).to.be.rejectedWith(mongoose.ValidationError);
     });
 
-    it(`Should not update existing client with duplicate hostUri
+    it(`Should not update existing client with duplicate hostUris (single host)
        and raise hostUri validation error`,
        () => {
          return expect(ManagementController.updateClient(
            registerdClient2.id,
-           { hostUri: registerdClient3.hostUri },
+           { hostUris: registerdClient4.hostUris },
+         )).to.be.rejectedWith(mongoose.ValidationError);
+       },
+    );
+
+    it(`Should not update existing client with duplicate hostUris (multiple hosts)
+       and raise hostUri validation error`,
+       () => {
+         return expect(ManagementController.updateClient(
+           registerdClient2.id,
+           { hostUris: registerdClient3.hostUris },
          )).to.be.rejectedWith(mongoose.ValidationError);
        },
     );

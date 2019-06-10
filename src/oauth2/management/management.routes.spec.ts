@@ -23,19 +23,19 @@ describe('Client Management Routes Functionality', () => {
 
   const validClientInformation: IClientBasicInformation =  {
     name: 'TestName',
-    hostUri: ['https://test.com'],
+    hostUris: ['https://test.com'],
     redirectUris: ['https://test.com/callback'],
   };
 
   const validClientInformation2: IClientBasicInformation = {
     name: 'TestNameShouldNotWork',
-    hostUri: ['https://testshouldnotwork.com'],
+    hostUris: ['https://testshouldnotwork.com'],
     redirectUris: ['https://testshouldnotwork.com/callback'],
   };
 
   const validClientInformation3: IClientBasicInformation = {
     name: 'TestNameShouldNotWork2',
-    hostUri: ['https://testshouldnotwork2.com'],
+    hostUris: ['https://testshouldnotwork2.com'],
     redirectUris: ['https://testshouldnotwork2.com/callback'],
   };
 
@@ -45,7 +45,7 @@ describe('Client Management Routes Functionality', () => {
     audienceId: 'clientRegistereAudienceId',
     registrationToken: 'clientRegistretRegistrationToken',
     name: 'ClientRegistrer',
-    hostUri: ['https://client.register.com'],
+    hostUris: ['https://client.register.com'],
     redirectUris: ['https://client.register.com/callback'],
     scopes: [config.CLIENT_MANAGER_SCOPE],
   });
@@ -56,7 +56,7 @@ describe('Client Management Routes Functionality', () => {
     audienceId: 'notClientRegistereAudienceId',
     registrationToken: 'notClientRegistrerRegistrationTokenBlaBla',
     name: 'notClientRegistrer',
-    hostUri: ['https://verynotclient.register.com'],
+    hostUris: ['https://verynotclient.register.com'],
     redirectUris: ['https://verynotclient.register.com/callback'],
     scopes: ['blabla'],
   });
@@ -67,7 +67,7 @@ describe('Client Management Routes Functionality', () => {
     audienceId: 'registeredClientAudienceId',
     registrationToken: 'registeredClientRegistrationTokenBlaBla',
     name: 'registeredClient',
-    hostUri: ['https://registeredClient.register.com'],
+    hostUris: ['https://registeredClient.register.com'],
     redirectUris: ['https://registeredClient.register.com/callback'],
     scopes: ['something'],
   });
@@ -78,7 +78,7 @@ describe('Client Management Routes Functionality', () => {
     audienceId: 'updatedClientAudienceId',
     registrationToken: 'updatedClientRegistrationTokenBlaBla',
     name: 'updatedClient',
-    hostUri: ['https://updatedClient.register.com'],
+    hostUris: ['https://updatedClient.register.com'],
     redirectUris: ['https://updatedClient.register.com/callback'],
     scopes: ['something-new'],
   });
@@ -89,7 +89,7 @@ describe('Client Management Routes Functionality', () => {
     audienceId: 'updatedClient2AudienceId',
     registrationToken: 'updatedClientRegistrationTokenBlaBla2',
     name: 'updatedClient2',
-    hostUri: ['https://updatedClient2.register.com'],
+    hostUris: ['https://updatedClient2.register.com'],
     redirectUris: ['https://updatedClient2.register.com/callback'],
     scopes: ['something-new2'],
   });
@@ -100,7 +100,7 @@ describe('Client Management Routes Functionality', () => {
     audienceId: 'deletedClientAudienceId',
     registrationToken: 'deletedClientRegistrationToken',
     name: 'deletedClientName',
-    hostUri: ['https://deletedClient.com'],
+    hostUris: ['https://deletedClient.com'],
     redirectUris: ['https://deletedClient.com/callback'],
     scopes: ['something-new-delete'],
   });
@@ -111,14 +111,14 @@ describe('Client Management Routes Functionality', () => {
     audienceId: 'deletedClient2AudienceId',
     registrationToken: 'deletedClientRegistrationToken2',
     name: 'deletedClientName2',
-    hostUri: ['https://deletedClient2.com'],
+    hostUris: ['https://deletedClient2.com'],
     redirectUris: ['https://deletedClient2.com/callback'],
     scopes: ['something-new-delete2'],
   });
 
   const updatedInformation: IClientBasicInformation = {
     name: 'newUpdatedClientName',
-    hostUri: ['https://updatedClient.reg', 'https://updatedClient2.reg'],
+    hostUris: ['https://updatedClient.reg', 'https://updatedClient2.reg'],
     redirectUris: [
       'https://updatedClient.reg/callback',
       'https://updatedClient.reg/redirect',
@@ -343,11 +343,11 @@ describe('Client Management Routes Functionality', () => {
                 'body',
                 {
                   ...updatedClient.toJSON(),
-                  // Lowercase redirectUris and hostUri in update information
+                  // Lowercase redirectUris and hostUris in update information
                   ...lowerCasePropertiesValues(
                     [
                       propertyOf<IClientInformation>('redirectUris'),
-                      propertyOf<IClientInformation>('hostUri'),
+                      propertyOf<IClientInformation>('hostUris'),
                     ],
                     updatedInformation,
                   ),

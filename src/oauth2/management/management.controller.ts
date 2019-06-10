@@ -31,7 +31,7 @@ export class ManagementController {
       registrationToken: registrationTokenValueGenerator(),
       ...clientInformation,
       // Override the hostUris to lowercases
-      hostUri: clientInformation.hostUri.map(val => val.toLowerCase()),
+      hostUris: clientInformation.hostUris.map(val => val.toLowerCase()),
       // Override the redirectUris to lowercases
       redirectUris: clientInformation.redirectUris.map(val => new URL(val).toString()),
     }).save();
@@ -72,8 +72,8 @@ export class ManagementController {
     if (clientDoc) {
 
       // Lowercase all the hostUris if exist
-      if (clientInformation.hostUri) {
-        clientInformation.hostUri = clientInformation.hostUri.map(val => val.toLowerCase());
+      if (clientInformation.hostUris) {
+        clientInformation.hostUris = clientInformation.hostUris.map(val => val.toLowerCase());
       }
 
       // Lowercase all the redirectUris if exist

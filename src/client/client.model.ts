@@ -3,7 +3,7 @@
 import { Schema, model } from 'mongoose';
 import { URL } from 'url';
 import { IClient, collectionName } from './client.interface';
-import { hostUriRegexValidator, redirectUrisValidator } from './client.validator';
+import { hostUrisRegexValidator, redirectUrisValidator } from './client.validator';
 import { InvalidRedirectUri, InvalidHostUri } from './client.error';
 
 const clientSchema = new Schema({
@@ -33,11 +33,11 @@ const clientSchema = new Schema({
     required: true,
     validate: redirectUrisValidator,
   },
-  hostUri: {
+  hostUris: {
     type: [String],
     unique: true,
     required: true,
-    validate: hostUriRegexValidator,
+    validate: hostUrisRegexValidator,
   },
   scopes: {
     type: [String],
@@ -57,28 +57,28 @@ clientSchema.methods.toJSON = function () {
   return obj;
 };
 
-// Lowercase all the hostUri and redirectUris before validators and saving
+// Lowercase all the hostUris and redirectUris before validators and saving
 clientSchema.pre<IClient>('validate', function validate(this: IClient, next: any) {
 
   let errorCatched = null;
   let validFormat = true;
   let index = 0;
 
-  while (validFormat && index < this.hostUri.length) {
+  while (validFormat && index < this.hostUris.length) {
 
     try {
-      const hostUriAsURL = new URL(this.hostUri[index]);
+      const hostUrisAsURL = new URL(this.hostUris[index]);
 
       // Checking if the hostUri given is really hostUri and not full url
-      if (hostUriAsURL.origin === hostUriAsURL.href.substring(0, hostUriAsURL.href.length - 1)) {
-        this.hostUri[index] = hostUriAsURL.origin;
+      if (hostUrisAsURL.origin === hostUrisAsURL.href.substring(0, hostUrisAsURL.href.length - 1)) {
+        this.hostUris[index] = hostUrisAsURL.origin;
       } else {
-        errorCatched = new InvalidHostUri(`Invalid host uri given - ${this.hostUri[index]}${
+        errorCatched = new InvalidHostUri(`Invalid host uri given - ${this.hostUris[index]}${
                                           ''}, should be https://hostname and not full url`);
         validFormat = false;
       }
     } catch (err) {
-      errorCatched = new InvalidHostUri(`Invalid host uri given - ${this.hostUri[index]}`);
+      errorCatched = new InvalidHostUri(`Invalid host uri given - ${this.hostUris[index]}`);
       validFormat = false;
     }
 
