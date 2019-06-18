@@ -22,7 +22,6 @@ import { errorMessages } from './oauth2.controller';
 import { IRefreshToken } from '../refreshToken/refreshToken.interface';
 
 // Utility functions for the tests
-
 function createAuthorizationParameters(responseType: string,
                                        clientId: string,
                                        redirectUri: string,
@@ -719,7 +718,7 @@ describe('OAuth2 Flows Functionality', () => {
       clientId: registeredClient._id,
       audience: registeredClient2.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient2.audienceId,
+        aud: registeredClient2.audienceId as string,
         sub: registeredClient._id,
         scope: ['read'],
         clientId: registeredClient._id,
@@ -733,7 +732,7 @@ describe('OAuth2 Flows Functionality', () => {
       userId: registeredUser._id,
       audience: registeredClient2.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient2.audienceId,
+        aud: registeredClient2.audienceId as string,
         sub: registeredUser._id,
         scope: ['write'],
         clientId: registeredClient._id,
@@ -747,7 +746,7 @@ describe('OAuth2 Flows Functionality', () => {
       userId: registeredUser._id,
       audience: registeredClient3.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient3.audienceId,
+        aud: registeredClient3.audienceId as string,
         sub: registeredUser._id,
         scope: ['write'],
         clientId: registeredClient._id,
@@ -761,7 +760,7 @@ describe('OAuth2 Flows Functionality', () => {
       userId: registeredUser._id,
       audience: registeredClient.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient.audienceId,
+        aud: registeredClient.audienceId as string,
         sub: registeredUser._id,
         scope: ['write'],
         clientId: registeredClient._id,
@@ -1287,7 +1286,7 @@ describe('OAuth2 Flows Functionality', () => {
       clientId: registeredClient._id,
       audience: registeredClient2.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient2.audienceId,
+        aud: registeredClient2.audienceId as string,
         sub: registeredClient._id,
         scope: ['read'],
         clientId: registeredClient._id,
@@ -1301,7 +1300,7 @@ describe('OAuth2 Flows Functionality', () => {
       userId: registeredUser._id,
       audience: registeredClient2.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient2.audienceId,
+        aud: registeredClient2.audienceId as string,
         sub: registeredUser._id,
         scope: ['write'],
         clientId: registeredClient._id,
@@ -1314,7 +1313,7 @@ describe('OAuth2 Flows Functionality', () => {
       clientId: registeredClient2._id,
       audience: registeredClient.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient.audienceId,
+        aud: registeredClient.audienceId as string,
         sub: registeredClient2._id,
         scope: ['write'],
         clientId: registeredClient2._id,
@@ -1429,7 +1428,7 @@ describe('OAuth2 Flows Functionality', () => {
       });
 
       const unexistToken2 = OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient3.audienceId,
+        aud: registeredClient3.audienceId as string,
         sub: registeredClient2._id,
         scope: ['something2'],
         clientId: registeredClient2.id,

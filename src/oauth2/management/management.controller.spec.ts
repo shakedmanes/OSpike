@@ -151,6 +151,22 @@ describe('Client Management Operations Functionality', async () => {
     redirectUris: registerdClient3.hostUris.map((val, index) => val + `/unexistredirect${index}`),
   };
 
+  // Invalid client by duplicate host (contains one of client's existing host)
+  const invalidClientDupHostMultComb: IClientBasicInformation = {
+    name: 'invalidClientDupHostMultComb',
+    hostUris: ['https://somethingbrandnew.com', registerdClient3.hostUris[0]],
+    redirectUris:
+      ['https://somethingbrandnew.com/callback', registerdClient3.hostUris[0] + '/callback'],
+  };
+
+  // Invalid client by duplicate host (all hosts of existing client but in different order)
+  const invalidClientDupHostMultOrder: IClientBasicInformation = {
+    name: 'invalidClientDupHostMultOrder',
+    hostUris: [registerdClient3.hostUris[1], registerdClient3.hostUris[0]],
+    redirectUris:
+      [registerdClient3.hostUris[1] + '/new/callback', registerdClient3.hostUris[0] + '/new/call'],
+  };
+
   /** Valid information to update on clients */
   const validUpdateClientInfo: IClientBasicInformation = {
     name: 'UpdatedRegisteredClient',
@@ -165,11 +181,13 @@ describe('Client Management Operations Functionality', async () => {
   };
 
   /** Invalid information to update on clients */
-  const invalidUpdateClientInfoHostUris: Partial<IClientBasicInformation> = {
+
+  // Invalid update infomration without redirect uris
+  const invalidUpdateClientInfoOnlyHostUris: Partial<IClientBasicInformation> = {
     hostUris: ['https://new.url.will.fail:3200'],
   };
 
-  const invalidUpdateClientInfoRedirectUris: Partial<IClientBasicInformation> = {
+  const invalidUpdateClientInfoOnlyRedirectUris: Partial<IClientBasicInformation> = {
     redirectUris: ['https://new.redirect.host.without.update.host/callback'],
   };
 
@@ -256,6 +274,26 @@ describe('Client Management Operations Functionality', async () => {
 
       return expect(invalidClientError).to.be.rejectedWith(mongoose.ValidationError);
     });
+
+    it(`Should not create client and raise duplicate hostUris ${''
+       } (multiple containing one host of another client) validation error`,
+       () => {
+         const invalidClientError =
+           ManagementController.registerClient(invalidClientDupHostMultComb);
+
+         return expect(invalidClientError).to.be.rejectedWith(mongoose.ValidationError);
+       },
+    );
+
+    it(`Should not create client and raise duplicate hostUris ${''
+       } (exact hostUris of client but in different order) validation error`,
+       () => {
+         const invalidClientError =
+           ManagementController.registerClient(invalidClientDupHostMultOrder);
+
+         return expect(invalidClientError).to.be.rejectedWith(mongoose.ValidationError);
+       },
+    );
 
     it('Should not create client and raise duplicate hostUris (single) validation error', () => {
       const invalidClientError = ManagementController.registerClient(invalidClientDupHost);
@@ -368,13 +406,16 @@ describe('Client Management Operations Functionality', async () => {
 
     it('Should not update exisiting client only with hostUri without updating redirectUris', () => {
       return expect(
-        ManagementController.updateClient(registerdClient2.id, invalidUpdateClientInfoHostUris),
+        ManagementController.updateClient(registerdClient2.id, invalidUpdateClientInfoOnlyHostUris),
       ).to.be.rejectedWith(mongoose.ValidationError);
     });
 
     it('Should not update exisiting client only with redirectUris without updating hostUri', () => {
       return expect(
-        ManagementController.updateClient(registerdClient2.id, invalidUpdateClientInfoRedirectUris),
+        ManagementController.updateClient(
+          registerdClient2.id,
+          invalidUpdateClientInfoOnlyRedirectUris,
+        ),
       ).to.be.rejectedWith(mongoose.ValidationError);
     });
 
@@ -439,7 +480,10 @@ describe('Client Management Operations Functionality', async () => {
        () => {
          return expect(ManagementController.updateClient(
            registerdClient2.id,
-           { hostUris: registerdClient4.hostUris },
+           {
+             hostUris: registerdClient4.hostUris,
+             redirectUris: [registerdClient4.hostUris[0] + '/new/test/call'],
+           },
          )).to.be.rejectedWith(mongoose.ValidationError);
        },
     );
@@ -449,7 +493,38 @@ describe('Client Management Operations Functionality', async () => {
        () => {
          return expect(ManagementController.updateClient(
            registerdClient2.id,
-           { hostUris: registerdClient3.hostUris },
+           {
+             hostUris: registerdClient3.hostUris,
+             redirectUris: [registerdClient3.hostUris[0] + '/okt', registerdClient3 + '/ooktest'],
+           },
+         )).to.be.rejectedWith(mongoose.ValidationError);
+       },
+    );
+
+    it(`Should not update existing client with duplicate hostUris ${''
+       }(same hosts different order) and raise validation error`,
+       () => {
+         return expect(ManagementController.updateClient(
+           registerdClient2.id,
+           {
+             hostUris: [registerdClient3.hostUris[1], registerdClient3.hostUris[0]],
+             redirectUris:
+              [registerdClient3.hostUris[1] + '/someurl', registerdClient3.hostUris[0] + '/ookurl'],
+           },
+         )).to.be.rejectedWith(mongoose.ValidationError);
+       },
+    );
+
+    it(`Should not update existing client with duplicate hostUris ${''
+       }(containing partial hosts of existing clients) and raise validation error`,
+       () => {
+         return expect(ManagementController.updateClient(
+           registerdClient2.id,
+           {
+             hostUris: ['https://wowthisisnotexistok.com', registerdClient3.hostUris[0]],
+             redirectUris:
+              ['https://wowthisisnotexistok.com/clbk/ok', registerdClient3.hostUris[0] + '/yqoekr'],
+           },
          )).to.be.rejectedWith(mongoose.ValidationError);
        },
     );
