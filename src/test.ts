@@ -74,6 +74,50 @@ export const lowerCasePropertiesValues = (props: string[], obj: any) => {
  */
 export const propertyOf = <T>(name: keyof T) => name;
 
+/**
+ * Generates all possible object subsets using the properties of the object as the whole group
+ * excluding the full object and empty object cases
+ * @param fullObj - full example object for deriving the properties and values
+ *
+ * Ex: generateObjectSubsets({ name: 'Test', good: True, sleepTime: 4 })
+ *     ==> [{ name: 'Test' }, { good: True }, { sleepTime: 4 },
+ *          { name: 'Test', good: True }, { name: 'Test', sleepTime: 4 },
+ *          { good: True, sleepTime: 4}]
+ * (Not guaranteed for exact same order)
+ * ]
+ */
+export function* generateObjectSubsets(fullObj: any): IterableIterator<any> {
+
+  let result: any;
+  let index: number;
+  let numKeys: number;
+  const keys = Object.keys(fullObj);
+
+  // tslint:disable-next-line:no-increment-decrement
+  for (let position = 1; position < Math.pow(2, keys.length); position++) {
+
+    result = {};
+    index = keys.length - 1;
+    numKeys = 0;
+
+    do {
+
+      // For each position, turn on the bit in shifted index position
+      // for getting all the positions possible
+      if ((position & (1 << index)) !== 0) {
+        result[keys[index]] = fullObj[keys[index]];
+        // tslint:disable-next-line:no-increment-decrement
+        numKeys++;
+      }
+    // tslint:disable-next-line:no-increment-decrement
+    } while (index--);
+
+    if (numKeys < keys.length) {
+      yield result;
+    }
+  }
+}
+
 // Runs before all the test cases for global configuration
 before(async () => {
 

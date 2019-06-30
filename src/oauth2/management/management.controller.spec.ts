@@ -4,9 +4,13 @@ import { expect } from 'chai';
 import * as mongoose from 'mongoose';
 import { ManagementController } from './management.controller';
 import { IClientInformation, IClientBasicInformation } from './management.interface';
-import { deleteCollections, propertyOf } from '../../test';
+import {
+  deleteCollections,
+  propertyOf,
+  generateObjectSubsets,
+} from '../../test';
 import clientModel from '../../client/client.model';
-import { ClientNotFound } from './management.error';
+import { ClientNotFound, BadClientInformation } from './management.error';
 
 describe('Client Management Operations Functionality', async () => {
 
@@ -88,6 +92,19 @@ describe('Client Management Operations Functionality', async () => {
     redirectUris: ['https://ewewewewewewsss/callback'],
   });
 
+  /** Missing clients properties */
+  const missingClientName = {
+    hostUris: ['https://orpiqjem'],
+    redirectUris: ['https://orpiqjem/callback'],
+  };
+
+  const missingClientHostUris = {
+    name: 'MissingClientHostUris',
+    redirectUris: ['https://missinghosturi/callback'],
+  };
+
+  /** Invalid clients */
+
   // Invalid client by hostUris
   const invalidClientHostUris: IClientBasicInformation = {
     name: 'invalidClientHostUris',
@@ -168,6 +185,7 @@ describe('Client Management Operations Functionality', async () => {
   };
 
   /** Valid information to update on clients */
+
   const validUpdateClientInfo: IClientBasicInformation = {
     name: 'UpdatedRegisteredClient',
     hostUris: ['https://new.url'],
@@ -329,6 +347,26 @@ describe('Client Management Operations Functionality', async () => {
          } as IClientBasicInformation)).to.be.rejectedWith(mongoose.ValidationError);
        },
     );
+
+    it(`Should not create client by partial client basic information ${''
+       }and raise BadClientInformation error`,
+       () => {
+         const errorPromises = [];
+         const invalidClient: IClientBasicInformation = {
+           name: 'partialClientInvalid',
+           hostUris: ['https://partialClient.com', 'https://verypartialclient.com'],
+           redirectUris: ['https://partialClient.com/call', 'https://verypartialclient.com/back'],
+         };
+
+         for (const subset of generateObjectSubsets(invalidClient)) {
+           errorPromises.push(
+             expect(ManagementController.registerClient(subset))
+             .to.be.rejectedWith(BadClientInformation),
+           );
+         }
+
+         return Promise.all(errorPromises);
+       });
   });
 
   describe('readClient()', () => {
@@ -528,7 +566,6 @@ describe('Client Management Operations Functionality', async () => {
          )).to.be.rejectedWith(mongoose.ValidationError);
        },
     );
-
   });
 
   describe('deleteClient()', () => {

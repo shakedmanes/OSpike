@@ -7,14 +7,25 @@ import {
   audienceIdValueGenerator,
   registrationTokenValueGenerator,
 } from '../../utils/valueGenerator';
-import { IClientBasicInformation, IClientInformation } from './management.interface';
+import {
+  IClientBasicInformation,
+  isIClientBasicInformation,
+  isPartialIClientBasicInformation,
+} from './management.interface';
 import clientModel from '../../client/client.model';
-import { ClientNotFound } from './management.error';
+import { ClientNotFound, BadClientInformation } from './management.error';
 
 // TODO: Add error handling
 // TODO: aggregate mongoose model properties
 
 export class ManagementController {
+
+  public static readonly ERROR_MESSAGES: { [error: string]: string} = {
+    MISSING_CLIENT_PROP: `Invalid client information given, format:
+    { name: XXX, hostUris: [https://XXX], redirectUris: [https://XXX/YYY]}`,
+    INVALID_CLIENT_UPDATE_PARAMS: `Invalid client update information given, format:
+    { name?: XXX, hostUris?: [https://XXX], redirectUris?: [https://XXX/YYY]}`,
+  };
 
   /**
    * Registers client as relay party in authorization server
@@ -22,6 +33,11 @@ export class ManagementController {
    * @returns Registered client information
    */
   static async registerClient(clientInformation: IClientBasicInformation) {
+
+    // Checking if the client information received is malformed
+    if (!isIClientBasicInformation(clientInformation)) {
+      throw new BadClientInformation(ManagementController.ERROR_MESSAGES.MISSING_CLIENT_PROP);
+    }
 
     // Creating the client model with whole values in the db
     const clientDoc = await new clientModel({
@@ -63,6 +79,13 @@ export class ManagementController {
    * @returns The updated client information
    */
   static async updateClient(clientId: string, clientInformation: Partial<IClientBasicInformation>) {
+
+    // Checking if the update information is malformed
+    if (!isPartialIClientBasicInformation(clientInformation)) {
+      throw new BadClientInformation(
+        ManagementController.ERROR_MESSAGES.INVALID_CLIENT_UPDATE_PARAMS,
+      );
+    }
 
     // Due to problem getting the model when updating, we need to seperate the query to
     // 2, one for getting the model and updating the changes, other for setting the changes
