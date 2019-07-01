@@ -24,19 +24,19 @@ describe('Client Management Routes Functionality', () => {
   const validClientInformation: IClientBasicInformation =  {
     name: 'TestName',
     hostUris: ['https://test.com'],
-    redirectUris: ['https://test.com/callback'],
+    redirectUris: ['/callback'],
   };
 
   const validClientInformation2: IClientBasicInformation = {
     name: 'TestNameShouldNotWork',
     hostUris: ['https://testshouldnotwork.com'],
-    redirectUris: ['https://testshouldnotwork.com/callback'],
+    redirectUris: ['/callback2'],
   };
 
   const validClientInformation3: IClientBasicInformation = {
     name: 'TestNameShouldNotWork2',
     hostUris: ['https://testshouldnotwork2.com'],
-    redirectUris: ['https://testshouldnotwork2.com/callback'],
+    redirectUris: ['/callback3'],
   };
 
   let clientRegistrer = new clientModel({
@@ -46,7 +46,7 @@ describe('Client Management Routes Functionality', () => {
     registrationToken: 'clientRegistretRegistrationToken',
     name: 'ClientRegistrer',
     hostUris: ['https://client.register.com'],
-    redirectUris: ['https://client.register.com/callback'],
+    redirectUris: ['/oauth2/callback'],
     scopes: [config.CLIENT_MANAGER_SCOPE],
   });
 
@@ -57,7 +57,7 @@ describe('Client Management Routes Functionality', () => {
     registrationToken: 'notClientRegistrerRegistrationTokenBlaBla',
     name: 'notClientRegistrer',
     hostUris: ['https://verynotclient.register.com'],
-    redirectUris: ['https://verynotclient.register.com/callback'],
+    redirectUris: ['/callback/not/registrer'],
     scopes: ['blabla'],
   });
 
@@ -68,7 +68,7 @@ describe('Client Management Routes Functionality', () => {
     registrationToken: 'registeredClientRegistrationTokenBlaBla',
     name: 'registeredClient',
     hostUris: ['https://registeredClient.register.com'],
-    redirectUris: ['https://registeredClient.register.com/callback'],
+    redirectUris: ['/callback/some1'],
     scopes: ['something'],
   });
 
@@ -79,7 +79,7 @@ describe('Client Management Routes Functionality', () => {
     registrationToken: 'updatedClientRegistrationTokenBlaBla',
     name: 'updatedClient',
     hostUris: ['https://updatedClient.register.com'],
-    redirectUris: ['https://updatedClient.register.com/callback'],
+    redirectUris: ['/callback/very/nice'],
     scopes: ['something-new'],
   });
 
@@ -90,7 +90,7 @@ describe('Client Management Routes Functionality', () => {
     registrationToken: 'updatedClientRegistrationTokenBlaBla2',
     name: 'updatedClient2',
     hostUris: ['https://updatedClient2.register.com'],
-    redirectUris: ['https://updatedClient2.register.com/callback'],
+    redirectUris: ['/callback/4u'],
     scopes: ['something-new2'],
   });
 
@@ -101,7 +101,7 @@ describe('Client Management Routes Functionality', () => {
     registrationToken: 'deletedClientRegistrationToken',
     name: 'deletedClientName',
     hostUris: ['https://deletedClient.com'],
-    redirectUris: ['https://deletedClient.com/callback'],
+    redirectUris: ['/callback/deleted/me'],
     scopes: ['something-new-delete'],
   });
 
@@ -112,18 +112,14 @@ describe('Client Management Routes Functionality', () => {
     registrationToken: 'deletedClientRegistrationToken2',
     name: 'deletedClientName2',
     hostUris: ['https://deletedClient2.com'],
-    redirectUris: ['https://deletedClient2.com/callback'],
+    redirectUris: ['/callback/me/again'],
     scopes: ['something-new-delete2'],
   });
 
   const updatedInformation: IClientBasicInformation = {
     name: 'newUpdatedClientName',
     hostUris: ['https://updatedClient.reg', 'https://updatedClient2.reg'],
-    redirectUris: [
-      'https://updatedClient.reg/callback',
-      'https://updatedClient.reg/redirect',
-      'https://updatedClient2.reg/callback',
-    ],
+    redirectUris: ['/callback', '/redirect', '/wellcome'],
   };
 
   // Will be created in before hook

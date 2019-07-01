@@ -11,6 +11,7 @@ export interface IClient extends IBaseModel {
   hostUris: string[];
   scopes: string[]; // Optional field for usage of client_credentials flow, may be empty
   registrationToken: string;
+  isValidRedirectUri: (redirectUri: string) => boolean; // Model method for validating redirectUri
 }
 
 export const collectionName = 'Client';

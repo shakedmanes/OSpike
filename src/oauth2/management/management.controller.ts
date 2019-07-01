@@ -22,9 +22,9 @@ export class ManagementController {
 
   public static readonly ERROR_MESSAGES: { [error: string]: string} = {
     MISSING_CLIENT_PROP: `Invalid client information given, format:
-    { name: XXX, hostUris: [https://XXX], redirectUris: [https://XXX/YYY]}`,
+    { name: XXX, hostUris: [https://XXX], redirectUris: [/YYY]}`,
     INVALID_CLIENT_UPDATE_PARAMS: `Invalid client update information given, format:
-    { name?: XXX, hostUris?: [https://XXX], redirectUris?: [https://XXX/YYY]}`,
+    { name?: XXX, hostUris?: [https://XXX], redirectUris?: [/YYY]}`,
   };
 
   /**
@@ -49,7 +49,7 @@ export class ManagementController {
       // Override the hostUris to lowercases
       hostUris: clientInformation.hostUris.map(val => val.toLowerCase()),
       // Override the redirectUris to lowercases
-      redirectUris: clientInformation.redirectUris.map(val => new URL(val).toString()),
+      redirectUris: clientInformation.redirectUris.map(val => val.toLowerCase()),
     }).save();
 
     return clientDoc;
@@ -102,31 +102,8 @@ export class ManagementController {
       // Lowercase all the redirectUris if exist
       if (clientInformation.redirectUris) {
         clientInformation.redirectUris =
-          clientInformation.redirectUris.map(val => new URL(val).toString());
+          clientInformation.redirectUris.map(val => val.toLowerCase());
       }
-
-      // tslint:disable-next-line:max-line-length
-      // // If we update the hostUri, we need to update the current redirectUris with the new hostUri
-      // if (clientInformation.hostUri && clientInformation.hostUri !== clientDoc.hostUri) {
-      //   const clientHostUri = clientInformation.hostUri;
-      //   clientInformation.hostUri = clientInformation.hostUri.toLowerCase();
-      //   const regHostsUri = new RegExp(
-      //     `(${clientDoc.hostUri}|${clientHostUri})`,
-      //   );
-
-      //   for (let index = 0; index < clientDoc.redirectUris.length; index += 1) {
-      //     clientDoc.redirectUris[index] =
-      //       clientDoc.redirectUris[index].replace(regHostsUri, clientInformation.hostUri);
-      //   }
-
-      //   if (clientInformation.redirectUris) {
-      //     for (let index = 0; index < clientInformation.redirectUris.length; index += 1) {
-      //       clientInformation.redirectUris[index] =
-      // tslint:disable-next-line:max-line-length
-      //         clientInformation.redirectUris[index].replace(regHostsUri, clientInformation.hostUri);
-      //     }
-      //   }
-      // }
 
       Object.assign(clientDoc, clientInformation);
       await clientDoc.save();

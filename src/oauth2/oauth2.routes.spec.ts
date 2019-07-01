@@ -204,7 +204,7 @@ describe('OAuth2 Flows Functionality', () => {
     registrationToken: 'registeredClientRegistrationTokenBlaBla',
     name: 'registeredClient',
     hostUris: ['https://registeredClient.register.com'],
-    redirectUris: ['https://registeredClient.register.com/callback'],
+    redirectUris: ['/callback'],
     scopes: ['something'],
   });
 
@@ -215,7 +215,7 @@ describe('OAuth2 Flows Functionality', () => {
     registrationToken: 'registreredClientRegistrationTokebBlaBla2',
     name: 'registeredClient2',
     hostUris: ['https://registeredClient2.register.com'],
-    redirectUris: ['https://registeredClient2.register.com/callback2'],
+    redirectUris: ['/callback2'],
     scopes: ['something2'],
   });
 
@@ -226,7 +226,7 @@ describe('OAuth2 Flows Functionality', () => {
     registrationToken: 'registreredClientRegistrationTokebBlaBla3',
     name: 'registeredClient3',
     hostUris: ['https://registeredClient3.register.com'],
-    redirectUris: ['https://registeredClient3.register.com/callback3'],
+    redirectUris: ['/callback3'],
     scopes: ['something3'],
   });
 

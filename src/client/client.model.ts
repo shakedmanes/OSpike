@@ -29,7 +29,7 @@ const clientSchema = new Schema({
   },
   redirectUris: {
     type: [String],
-    unique: true,
+    // unique: true,
     required: true,
     validate: redirectUrisValidator,
   },
@@ -55,6 +55,24 @@ clientSchema.methods.toJSON = function () {
   delete obj._id;
   delete obj.__v;
   return obj;
+};
+
+clientSchema.methods.isValidRedirectUri = function (this: IClient, redirectUri: string) {
+
+  let urlFormatedRedirectUri = null;
+  let extractedRedirectUri = null;
+
+  try {
+    urlFormatedRedirectUri = new URL(redirectUri);
+    extractedRedirectUri = urlFormatedRedirectUri.href.slice(urlFormatedRedirectUri.origin.length);
+  } catch (err) {
+    return false;
+  }
+
+  return (
+    this.hostUris.indexOf(urlFormatedRedirectUri.origin) !== -1 &&
+    this.redirectUris.indexOf(extractedRedirectUri) !== -1
+  );
 };
 
 // Lowercase all the hostUris and redirectUris before validators and saving
@@ -91,7 +109,7 @@ clientSchema.pre<IClient>('validate', function validate(this: IClient, next: any
   while (validFormat && index < this.redirectUris.length) {
 
     try {
-      this.redirectUris[index] = new URL(this.redirectUris[index]).toString();
+      this.redirectUris[index] = this.redirectUris[index].toLowerCase();
     } catch (err) {
       errorCatched =
         new InvalidRedirectUri(`Invalid redirect uri given - ${this.redirectUris[index]}`);
