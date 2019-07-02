@@ -4,10 +4,8 @@ import { expect } from 'chai';
 import { default as request } from 'supertest';
 import app from '../app';
 import config from '../config';
-import {
-  deleteCollections,
-  dismantleNestedProperties,
-} from '../test';
+import { dismantleNestedProperties } from '../utils/objectUtils';
+import { deleteCollections } from '../test';
 import accessTokenModel, {
   errorMessages as tokenErrorMessages,
 } from '../accessToken/accessToken.model';

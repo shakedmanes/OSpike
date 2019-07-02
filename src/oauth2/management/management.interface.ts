@@ -1,7 +1,7 @@
 // management.interface
 
 import { IClient } from '../../client/client.interface';
-import { propertyOf } from '../../test';
+import { propertyOf } from '../../utils/objectUtils';
 
 // Client information given by the user
 export interface IClientBasicInformation {

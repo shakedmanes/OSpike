@@ -8,11 +8,11 @@ import { errorMessages } from './management.routes';
 import clientModel from '../../client/client.model';
 import accessTokenModel from '../../accessToken/accessToken.model';
 import {
-  deleteCollections,
   propertyOf,
   dismantleNestedProperties,
   lowerCasePropertiesValues,
-} from '../../test';
+} from '../../utils/objectUtils';
+import { deleteCollections } from '../../test';
 import { InvalidParameter } from '../../utils/error';
 import app from '../../app';
 import config from '../../config';

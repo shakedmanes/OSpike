@@ -4,11 +4,8 @@ import { expect } from 'chai';
 import * as mongoose from 'mongoose';
 import { ManagementController } from './management.controller';
 import { IClientInformation, IClientBasicInformation } from './management.interface';
-import {
-  deleteCollections,
-  propertyOf,
-  generateObjectSubsets,
-} from '../../test';
+import { propertyOf, generateObjectSubsets } from '../../utils/objectUtils';
+import { deleteCollections } from '../../test';
 import clientModel from '../../client/client.model';
 import { ClientNotFound, BadClientInformation } from './management.error';
 
@@ -190,7 +187,6 @@ describe('Client Management Operations Functionality', async () => {
     hostUris: ['https://okokoktovbye', 'thisisverybad'],
     redirectUris: ['/shouldWorkyes'],
   };
-
 
   /** Valid information to update on clients */
 
