@@ -1,6 +1,5 @@
 // management.controller
 
-import { URL } from 'url';
 import {
   clientIdValueGenerator,
   clientSecretValueGenerator,
@@ -66,6 +65,7 @@ export class ManagementController {
       await clientModel.findOne({ id: clientId }).lean();
 
     if (clientDoc) {
+      delete clientDoc.__v;
       return clientDoc;
     }
 
