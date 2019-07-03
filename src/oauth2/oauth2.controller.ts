@@ -351,8 +351,8 @@ export const authorizationEndpoint = [
   server.authorization(
     // TODO: add typing for new validate function
     async (areq: any , done: any) => {
-      const client = await clientModel.findOne({ id: areq.clientID }).lean();
-      if (client && client.redirectUris.indexOf(areq.redirectURI) > -1) {
+      const client = await clientModel.findOne({ id: areq.clientID });
+      if (client && client.isValidRedirectUri(areq.redirectURI)) {
 
         /**
          * Note For Future Releases:

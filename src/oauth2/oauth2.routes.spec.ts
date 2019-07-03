@@ -4,19 +4,14 @@ import { expect } from 'chai';
 import { default as request } from 'supertest';
 import app from '../app';
 import config from '../config';
-import {
-  deleteCollections,
-  propertyOf,
-  dismantleNestedProperties,
-  lowerCasePropertiesValues,
-} from '../test';
+import { dismantleNestedProperties } from '../utils/objectUtils';
+import { deleteCollections } from '../test';
 import accessTokenModel, {
   errorMessages as tokenErrorMessages,
 } from '../accessToken/accessToken.model';
 import clientModel from '../client/client.model';
 import refreshTokenModel from '../refreshToken/refreshToken.model';
 import { IClient } from '../client/client.interface';
-import { IUser } from '../user/user.interface';
 import { OAuth2Utils, JWTPayload } from './oauth2.utils';
 import { refreshTokenValueGenerator } from '../utils/valueGenerator';
 import { IAccessToken } from '../accessToken/accessToken.interface';
@@ -25,7 +20,6 @@ import { errorMessages } from './oauth2.controller';
 import { IRefreshToken } from '../refreshToken/refreshToken.interface';
 
 // Utility functions for the tests
-
 function createAuthorizationParameters(responseType: string,
                                        clientId: string,
                                        redirectUri: string,
@@ -87,13 +81,6 @@ interface ITokenClaims extends Required<ITokenOptions> {
   iss: string;
 }
 
-interface IResponseBodyTemplate {
-  access_token: string;
-  refresh_token?: string;
-  expires_in: number;
-  token_type: string;
-}
-
 enum GrantType { CODE, IMPLICIT, CLIENT_CREDENTIALS, PASSWORD, REFRESH_TOKEN }
 
 function checkTokenResponseValidity(grantType: GrantType,
@@ -105,9 +92,11 @@ function checkTokenResponseValidity(grantType: GrantType,
 
   switch (grantType) {
 
+    // Checking Authorization Code Flow
     case (GrantType.CODE):
       break;
 
+    // Checking Implicit Flow
     case (GrantType.IMPLICIT):
       break;
 
@@ -129,6 +118,7 @@ function checkTokenResponseValidity(grantType: GrantType,
       });
       break;
 
+    // Checking Resource Owner Password Credentials Flow
     case (GrantType.PASSWORD):
       expect(response).to.have.property('status', 200);
       expect(response.body).to.have.all.keys(responseBodyTemplate);
@@ -144,6 +134,7 @@ function checkTokenResponseValidity(grantType: GrantType,
       });
       break;
 
+    // Checking Refresh Token Flow
     case (GrantType.REFRESH_TOKEN):
       expect(response).to.have.property('status', 200);
       expect(response.body).to.have.all.keys(responseBodyTemplate);
@@ -207,30 +198,33 @@ describe('OAuth2 Flows Functionality', () => {
   let registeredClient = new clientModel({
     id: 'registeredClientId',
     secret: 'registeredClientSecret',
+    audienceId: 'registeredClientAudienceId',
     registrationToken: 'registeredClientRegistrationTokenBlaBla',
     name: 'registeredClient',
-    hostUri: 'https://registeredClient.register.com',
-    redirectUris: ['https://registeredClient.register.com/callback'],
+    hostUris: ['https://registeredClient.register.com'],
+    redirectUris: ['/callback'],
     scopes: ['something'],
   });
 
   let registeredClient2 = new clientModel({
     id: 'registeredClientId2',
     secret: 'registeredClientSecert2',
+    audienceId: 'registeredClientAudienceId2',
     registrationToken: 'registreredClientRegistrationTokebBlaBla2',
     name: 'registeredClient2',
-    hostUri: 'https://registeredClient2.register.com',
-    redirectUris: ['https://registeredClient2.register.com/callback2'],
+    hostUris: ['https://registeredClient2.register.com'],
+    redirectUris: ['/callback2'],
     scopes: ['something2'],
   });
 
   let registeredClient3 = new clientModel({
     id: 'registeredClientId3',
     secret: 'registeredClientSecert3',
+    audienceId: 'registeredClientAudienceId3',
     registrationToken: 'registreredClientRegistrationTokebBlaBla3',
     name: 'registeredClient3',
-    hostUri: 'https://registeredClient3.register.com',
-    redirectUris: ['https://registeredClient3.register.com/callback3'],
+    hostUris: ['https://registeredClient3.register.com'],
+    redirectUris: ['/callback3'],
     scopes: ['something3'],
   });
 
@@ -267,6 +261,10 @@ describe('OAuth2 Flows Functionality', () => {
   });
 
   describe('Implicit Flow', () => {
+
+    afterEach(async () => {
+      await deleteCollections(['accesstokens']);
+    });
 
   });
 
@@ -669,7 +667,7 @@ describe('OAuth2 Flows Functionality', () => {
                   );
          expect(response).to.nested.include({
            status: 400,
-           'body.message': tokenErrorMessages.DUPLICATE_ACCESS_TOKEN,
+           'body.message': tokenErrorMessages.DUPLICATE_ACCESS_TOKEN_WITHOUT_USER,
          });
 
        },
@@ -702,26 +700,23 @@ describe('OAuth2 Flows Functionality', () => {
 
   });
 
-  describe.only('Refresh Token Flow', () => {
+  describe('Refresh Token Flow', () => {
 
-    // Need to add refresh token for each token...
     let tokenClientCredentials: IAccessToken;
     let tokenAuthorizationCode: IAccessToken;
     let tokenResourceOwnerCredentials: IAccessToken;
     let tokenImplicit: IAccessToken;
-    let tokenInactive: IAccessToken;
 
     let refreshTokenClientCredentials: IRefreshToken;
     let refreshTokenAuthorizationCode: IRefreshToken;
     let refreshTokenResourceOwnerCredentials: IRefreshToken;
     let refreshTokenImplicit: IRefreshToken;
-    let inactiveRefreshToken: IRefreshToken;
 
     const tokenParamsClientCredentials = {
       clientId: registeredClient._id,
-      audience: registeredClient2.hostUri,
+      audience: registeredClient2.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient2.hostUri,
+        aud: registeredClient2.audienceId as string,
         sub: registeredClient._id,
         scope: ['read'],
         clientId: registeredClient._id,
@@ -733,9 +728,9 @@ describe('OAuth2 Flows Functionality', () => {
     const tokenParamsAuthorizationCode = {
       clientId: registeredClient._id,
       userId: registeredUser._id,
-      audience: registeredClient2.hostUri,
+      audience: registeredClient2.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient2.hostUri,
+        aud: registeredClient2.audienceId as string,
         sub: registeredUser._id,
         scope: ['write'],
         clientId: registeredClient._id,
@@ -747,9 +742,9 @@ describe('OAuth2 Flows Functionality', () => {
     const tokenParamsResourceOwnerCredentials = {
       clientId: registeredClient._id,
       userId: registeredUser._id,
-      audience: registeredClient3.hostUri,
+      audience: registeredClient3.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient3.hostUri,
+        aud: registeredClient3.audienceId as string,
         sub: registeredUser._id,
         scope: ['write'],
         clientId: registeredClient._id,
@@ -761,29 +756,15 @@ describe('OAuth2 Flows Functionality', () => {
     const tokenParamsImplicit = {
       clientId: registeredClient3._id,
       userId: registeredUser._id,
-      audience: registeredClient.hostUri,
+      audience: registeredClient.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient.hostUri,
+        aud: registeredClient.audienceId as string,
         sub: registeredUser._id,
         scope: ['write'],
         clientId: registeredClient._id,
       }),
       scopes: ['write'],
       grantType: 'token',
-    };
-
-    const tokenParamsInactive = {
-      clientId: registeredClient2._id,
-      userId: registeredUser2._id,
-      audience: registeredClient.hostUri,
-      value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient.hostUri,
-        sub:registeredUser2._id,
-        scope: ['write'],
-        clientId: registeredClient2._id,
-      }),
-      scope: ['write'],
-      grantType: 'code',
     };
 
     // Middleware for before and after test cases
@@ -795,7 +776,6 @@ describe('OAuth2 Flows Functionality', () => {
       tokenResourceOwnerCredentials =
         await new accessTokenModel(tokenParamsResourceOwnerCredentials).save();
       tokenImplicit = await new accessTokenModel(tokenParamsImplicit).save();
-      tokenInactive = await new accessTokenModel(tokenParamsInactive).save();
 
       refreshTokenClientCredentials = await new refreshTokenModel({
         value: refreshTokenValueGenerator(),
@@ -813,16 +793,11 @@ describe('OAuth2 Flows Functionality', () => {
         value: refreshTokenValueGenerator(),
         accessTokenId: tokenImplicit._id,
       }).save();
-      inactiveRefreshToken = await new refreshTokenModel({
-        value: refreshTokenValueGenerator(),
-        accessTokenId: tokenInactive._id,
-      }).save();
 
       await tokenClientCredentials.populate('clientId').execPopulate();
       await tokenAuthorizationCode.populate('clientId').execPopulate();
       await tokenResourceOwnerCredentials.populate('clientId').execPopulate();
       await tokenImplicit.populate('clientId').execPopulate();
-      await tokenInactive.populate('clientId').execPopulate();
     };
 
     before(deleteAndCreateTokens);
@@ -1307,9 +1282,9 @@ describe('OAuth2 Flows Functionality', () => {
 
     let validToken = new accessTokenModel({
       clientId: registeredClient._id,
-      audience: registeredClient2.hostUri,
+      audience: registeredClient2.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient2.hostUri,
+        aud: registeredClient2.audienceId as string,
         sub: registeredClient._id,
         scope: ['read'],
         clientId: registeredClient._id,
@@ -1321,9 +1296,9 @@ describe('OAuth2 Flows Functionality', () => {
     let validToken2 = new accessTokenModel({
       clientId: registeredClient._id,
       userId: registeredUser._id,
-      audience: registeredClient2.hostUri,
+      audience: registeredClient2.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient2.hostUri,
+        aud: registeredClient2.audienceId as string,
         sub: registeredUser._id,
         scope: ['write'],
         clientId: registeredClient._id,
@@ -1334,9 +1309,9 @@ describe('OAuth2 Flows Functionality', () => {
 
     let validInactiveToken = new accessTokenModel({
       clientId: registeredClient2._id,
-      audience: registeredClient.hostUri,
+      audience: registeredClient.audienceId,
       value: OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient.hostUri,
+        aud: registeredClient.audienceId as string,
         sub: registeredClient2._id,
         scope: ['write'],
         clientId: registeredClient2._id,
@@ -1451,7 +1426,7 @@ describe('OAuth2 Flows Functionality', () => {
       });
 
       const unexistToken2 = OAuth2Utils.createJWTAccessToken({
-        aud: registeredClient3.hostUri,
+        aud: registeredClient3.audienceId as string,
         sub: registeredClient2._id,
         scope: ['something2'],
         clientId: registeredClient2.id,
