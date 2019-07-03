@@ -60,7 +60,7 @@ authCodeSchema.post('save', (err, doc, next) => {
 // Checking if redirectUri specified is in the redirect uris of the client model
 authCodeSchema.pre<IAuthCode>('validate', async function () {
   const clientModel = await model<IClient>(ClientModelName).findOne({ id: this.clientId });
-  if (clientModel && clientModel.redirectUris.indexOf(this.redirectUri) !== -1) {
+  if (clientModel && clientModel.isValidRedirectUri(this.redirectUri)) {
     throw new Error('Reference Error - RedirectUri doesn\'t exists in client model');
   }
 });

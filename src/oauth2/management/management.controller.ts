@@ -3,19 +3,28 @@
 import {
   clientIdValueGenerator,
   clientSecretValueGenerator,
+  audienceIdValueGenerator,
   registrationTokenValueGenerator,
 } from '../../utils/valueGenerator';
-import { IClientBasicInformation, IClientInformation } from './management.interface';
+import {
+  IClientBasicInformation,
+  isIClientBasicInformation,
+  isPartialIClientBasicInformation,
+} from './management.interface';
 import clientModel from '../../client/client.model';
-import { ClientNotFound } from './management.error';
+import { ClientNotFound, BadClientInformation } from './management.error';
 
 // TODO: Add error handling
 // TODO: aggregate mongoose model properties
 
 export class ManagementController {
 
-  // Projection fields to exclude from client document
-  static readonly clientProjectionFields = { _id: 0, __v: 0 };
+  public static readonly ERROR_MESSAGES: { [error: string]: string} = {
+    MISSING_CLIENT_PROP: `Invalid client information given, format:
+    { name: XXX, hostUris: [https://XXX], redirectUris: [/YYY]}`,
+    INVALID_CLIENT_UPDATE_PARAMS: `Invalid client update information given, format:
+    { name?: XXX, hostUris?: [https://XXX], redirectUris?: [/YYY]}`,
+  };
 
   /**
    * Registers client as relay party in authorization server
@@ -24,17 +33,22 @@ export class ManagementController {
    */
   static async registerClient(clientInformation: IClientBasicInformation) {
 
+    // Checking if the client information received is malformed
+    if (!isIClientBasicInformation(clientInformation)) {
+      throw new BadClientInformation(ManagementController.ERROR_MESSAGES.MISSING_CLIENT_PROP);
+    }
+
     // Creating the client model with whole values in the db
     const clientDoc = await new clientModel({
       id: clientIdValueGenerator(),
       secret: clientSecretValueGenerator(),
+      audienceId: audienceIdValueGenerator(),
       registrationToken: registrationTokenValueGenerator(),
       ...clientInformation,
-      hostUri: clientInformation.hostUri.toLowerCase(), // Override the hostUri to lowercases
-      redirectUris:
-        clientInformation.redirectUris.map(
-          val => val.replace(clientInformation.hostUri, clientInformation.hostUri.toLowerCase()),
-        ),
+      // Override the hostUris to lowercases
+      hostUris: clientInformation.hostUris.map(val => val.toLowerCase()),
+      // Override the redirectUris to lowercases
+      redirectUris: clientInformation.redirectUris.map(val => val.toLowerCase()),
     }).save();
 
     return clientDoc;
@@ -51,6 +65,7 @@ export class ManagementController {
       await clientModel.findOne({ id: clientId }).lean();
 
     if (clientDoc) {
+      delete clientDoc.__v;
       return clientDoc;
     }
 
@@ -65,6 +80,13 @@ export class ManagementController {
    */
   static async updateClient(clientId: string, clientInformation: Partial<IClientBasicInformation>) {
 
+    // Checking if the update information is malformed
+    if (!isPartialIClientBasicInformation(clientInformation)) {
+      throw new BadClientInformation(
+        ManagementController.ERROR_MESSAGES.INVALID_CLIENT_UPDATE_PARAMS,
+      );
+    }
+
     // Due to problem getting the model when updating, we need to seperate the query to
     // 2, one for getting the model and updating the changes, other for setting the changes
     // and checking it via the validators.
@@ -72,25 +94,15 @@ export class ManagementController {
 
     if (clientDoc) {
 
-      // If we update the hostUri, we need to update the current redirectUris with the new hostUri
-      if (clientInformation.hostUri && clientInformation.hostUri !== clientDoc.hostUri) {
-        const clientHostUri = clientInformation.hostUri;
-        clientInformation.hostUri = clientInformation.hostUri.toLowerCase();
-        const regHostsUri = new RegExp(
-          `(${clientDoc.hostUri}|${clientHostUri})`,
-        );
+      // Lowercase all the hostUris if exist
+      if (clientInformation.hostUris) {
+        clientInformation.hostUris = clientInformation.hostUris.map(val => val.toLowerCase());
+      }
 
-        for (let index = 0; index < clientDoc.redirectUris.length; index += 1) {
-          clientDoc.redirectUris[index] =
-            clientDoc.redirectUris[index].replace(regHostsUri, clientInformation.hostUri);
-        }
-
-        if (clientInformation.redirectUris) {
-          for (let index = 0; index < clientInformation.redirectUris.length; index += 1) {
-            clientInformation.redirectUris[index] =
-              clientInformation.redirectUris[index].replace(regHostsUri, clientInformation.hostUri);
-          }
-        }
+      // Lowercase all the redirectUris if exist
+      if (clientInformation.redirectUris) {
+        clientInformation.redirectUris =
+          clientInformation.redirectUris.map(val => val.toLowerCase());
       }
 
       Object.assign(clientDoc, clientInformation);

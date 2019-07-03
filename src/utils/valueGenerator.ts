@@ -23,6 +23,10 @@ export const clientSecretValueGenerator = () => {
   return nanoid(config.CLIENT_SECRET_LENGTH);
 };
 
+export const audienceIdValueGenerator = () => {
+  return nanoid(config.AUDIENCE_ID_LENGTH);
+};
+
 export const registrationTokenValueGenerator = () => {
   return nanoid(config.REGISTRATION_TOKEN_LENGTH);
 };

@@ -6,10 +6,12 @@ export interface IClient extends IBaseModel {
   name: string;
   id: string;
   secret: string;
+  audienceId: string | IClient; // Audience id used for mention the client in access token
   redirectUris: string[];
-  hostUri: string;
+  hostUris: string[];
   scopes: string[]; // Optional field for usage of client_credentials flow, may be empty
   registrationToken: string;
+  isValidRedirectUri: (redirectUri: string) => boolean; // Model method for validating redirectUri
 }
 
 export const collectionName = 'Client';
