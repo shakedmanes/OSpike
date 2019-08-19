@@ -94,9 +94,13 @@ export class ManagementController {
 
     if (clientDoc) {
 
+      const updatedHostUris: any = {};
+
       // Lowercase all the hostUris if exist
       if (clientInformation.hostUris) {
-        clientInformation.hostUris = clientInformation.hostUris.map(val => val.toLowerCase());
+        updatedHostUris['$addToSet'] =
+           { hostUris: clientInformation.hostUris.map(val => val.toLowerCase()) };
+        delete clientInformation.hostUris;
       }
 
       // Lowercase all the redirectUris if exist
@@ -105,10 +109,16 @@ export class ManagementController {
           clientInformation.redirectUris.map(val => val.toLowerCase());
       }
 
-      Object.assign(clientDoc, clientInformation);
-      await clientDoc.save();
+      const updatedClient = await clientModel.findOneAndUpdate(
+        { id: clientDoc.id },
+        { ...clientInformation, ...updatedHostUris },
+      );
 
-      return clientDoc;
+      // Object.assign(clientDoc, clientInformation);
+      // await clientDoc.save();
+
+      // return clientDoc;
+      return updatedClient;
     }
 
     throw new ClientNotFound('Invalid client id or client registration token given');
