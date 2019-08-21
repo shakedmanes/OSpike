@@ -90,6 +90,10 @@ clientSchema.pre<IClient>('validate', function validate(this: IClient, next: any
       // Checking if the hostUri given is really hostUri and not full url
       if (hostUrisAsURL.origin === hostUrisAsURL.href.substring(0, hostUrisAsURL.href.length - 1)) {
         this.hostUris[index] = hostUrisAsURL.origin;
+
+        if (!hostUrisAsURL.port) {
+          this.hostUris[index] += ':443';
+        }
       } else {
         errorCatched = new InvalidHostUri(`Invalid host uri given - ${this.hostUris[index]}${
                                           ''}, should be https://hostname and not full url`);
