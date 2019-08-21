@@ -24,6 +24,7 @@ export class ManagementController {
     { name: XXX, hostUris: [https://XXX], redirectUris: [/YYY]}`,
     INVALID_CLIENT_UPDATE_PARAMS: `Invalid client update information given, format:
     { name?: XXX, hostUris?: [https://XXX], redirectUris?: [/YYY]}`,
+    DUPLICATE_HOST_URI: `Invalid client information given, Duplicate host uri found`,
   };
 
   /**
@@ -32,6 +33,7 @@ export class ManagementController {
    * @returns Registered client information
    */
   static async registerClient(clientInformation: IClientBasicInformation) {
+    console.log(clientInformation);
 
     // Checking if the client information received is malformed
     if (!isIClientBasicInformation(clientInformation)) {
@@ -50,7 +52,7 @@ export class ManagementController {
       // Override the redirectUris to lowercases
       redirectUris: clientInformation.redirectUris.map(val => val.toLowerCase()),
     }).save();
-
+    console.log(clientDoc);
     return clientDoc;
   }
 
@@ -98,10 +100,17 @@ export class ManagementController {
 
       // Lowercase all the hostUris if exist
       if (clientInformation.hostUris) {
+        clientInformation.hostUris = clientInformation.hostUris.map(val => val.toLowerCase());
+        const setHostUris = new Set(clientInformation.hostUris);
+
+        if (clientInformation.hostUris.length !== setHostUris.size) {
+          throw new BadClientInformation(this.ERROR_MESSAGES.DUPLICATE_HOST_URI);
+        }
+      }
+        /*
         updatedHostUris['$addToSet'] =
            { hostUris: clientInformation.hostUris.map(val => val.toLowerCase()) };
-        delete clientInformation.hostUris;
-      }
+        delete clientInformation.hostUris;*/
 
       // Lowercase all the redirectUris if exist
       if (clientInformation.redirectUris) {
@@ -109,16 +118,16 @@ export class ManagementController {
           clientInformation.redirectUris.map(val => val.toLowerCase());
       }
 
-      const updatedClient = await clientModel.findOneAndUpdate(
+      /*const updatedClient = await clientModel.findOneAndUpdate(
         { id: clientDoc.id },
         { ...clientInformation, ...updatedHostUris },
-      );
+      );*/
 
-      // Object.assign(clientDoc, clientInformation);
-      // await clientDoc.save();
+      Object.assign(clientDoc, clientInformation);
+      await clientDoc.save();
 
-      // return clientDoc;
-      return updatedClient;
+      return clientDoc;
+      // return updatedClient;
     }
 
     throw new ClientNotFound('Invalid client id or client registration token given');
