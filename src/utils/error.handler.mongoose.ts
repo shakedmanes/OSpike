@@ -27,7 +27,7 @@ export class MongooseErrorHandler {
    * Parses error occurred by mongoose to readable error for the client
    * @param error - Error occurred by mongoose
    */
-  static parseError(error: MongooseError | MongoError): { status: number, message: string} {
+  static parseError(error: MongooseError | MongoError): { status: number, message: string } {
 
     switch (error.name) {
 
@@ -67,8 +67,8 @@ export class MongooseErrorHandler {
 
     // Finding the collection that related to the error
     for (index = 0;
-         collectionIndex === -1 && index < MongooseErrorHandler.COLLECTION_NAMES.length;
-         index += 1) {
+      collectionIndex === -1 && index < MongooseErrorHandler.COLLECTION_NAMES.length;
+      index += 1) {
       collectionIndex = message.indexOf(MongooseErrorHandler.COLLECTION_NAMES[index]);
     }
 
@@ -92,8 +92,8 @@ export class MongooseErrorHandler {
     );
 
     return MongooseErrorHandler.DUP_KEY_TEMPLATE_MESSAGE
-           .replace('{collection}', MongooseErrorHandler.COLLECTION_NAMES_VIEW[index])
-           .replace('{prop}', prop)
-           .replace('{value}', value);
+      .replace('{collection}', MongooseErrorHandler.COLLECTION_NAMES_VIEW[index])
+      .replace('{prop}', prop)
+      .replace('{value}', value);
   }
 }

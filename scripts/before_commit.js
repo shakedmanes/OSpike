@@ -17,8 +17,11 @@ function beforeCommit() {
 
     for (deleteCred of Object.keys(config.credentailsToDelete)) {
       const index = modifiedScriptValue.indexOf(deleteCred) + 1;
-      envsConfigurations[scriptName][deleteCred] = modifiedScriptValue[index];
-      modifiedScriptValue[index] = config.credentailsToDelete[deleteCred]
+
+      if (index) {
+        envsConfigurations[scriptName][deleteCred] = modifiedScriptValue[index];
+        modifiedScriptValue[index] = config.credentailsToDelete[deleteCred];        
+      }
     }
 
     pkgJsonFile.scripts[scriptName] = modifiedScriptValue.join(' ');
