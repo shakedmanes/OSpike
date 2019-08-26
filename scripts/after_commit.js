@@ -16,7 +16,7 @@ function afterCommit() {
     for (deleteCred of Object.keys(config.credentailsToDelete)) {
       const index = unmodifiedScriptValue.indexOf(deleteCred) + 1;
 
-      if (index !== -1) {
+      if (index !== 0) {
         unmodifiedScriptValue[index] = envsConfigurations[scriptName][deleteCred];
       }
     }

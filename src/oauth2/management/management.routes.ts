@@ -6,6 +6,7 @@ import config from '../../config';
 import { ManagementController } from './management.controller';
 import { Wrapper } from '../../utils/wrapper';
 import { InvalidParameter } from '../../utils/error';
+import { LOG_LEVEL, log, parseLogData } from '../../utils/logger';
 
 /**
  * Authentication middlewares for restricting routes.
@@ -41,8 +42,30 @@ export const setManagementRoutes = (router: Router) => {
         const clientInformation =
           await ManagementController.registerClient(req.body.clientInformation);
 
+        log(
+          LOG_LEVEL.INFO,
+          parseLogData(
+            'Client Management Router',
+            `Received from ${req.headers['x-forwarded-for']}, Operation - Register client. ${'\r\n'
+             } Client information: ${JSON.stringify(req.body.clientInformation)}`,
+            201,
+            null,
+          ),
+        );
+
         return res.status(201).send(clientInformation);
       }
+
+      log(
+        LOG_LEVEL.INFO,
+        parseLogData(
+          'Client Management Router',
+          `Received from ${req.headers['x-forwarded-for']}, Operation - Register client. ${'\r\n'
+           } Results: Missing client information`,
+          400,
+          null,
+        ),
+      );
 
       throw new InvalidParameter(errorMessages.MISSING_CLIENT_INFORMATION);
     },
@@ -58,8 +81,30 @@ export const setManagementRoutes = (router: Router) => {
       if (req.params.clientId) {
         const clientInformation = await ManagementController.readClient(req.params.clientId);
 
+        log(
+          LOG_LEVEL.INFO,
+          parseLogData(
+            'Client Management Router',
+            `Received from ${req.headers['x-forwarded-for']}, Operation - Read client. ${'\r\n'
+             } Client Id: ${req.params.clientId}`,
+            200,
+            null,
+          ),
+        );
+
         return res.status(200).send(clientInformation);
       }
+
+      log(
+        LOG_LEVEL.INFO,
+        parseLogData(
+          'Client Management Router',
+          `Received from ${req.headers['x-forwarded-for']}, Operation - Read client. ${'\r\n'
+           } Results: Missing client id`,
+          400,
+          null,
+        ),
+      );
 
       throw new InvalidParameter(errorMessages.MISSING_CLIENT_ID);
     },
@@ -76,8 +121,31 @@ export const setManagementRoutes = (router: Router) => {
         const clientInformation =
           await ManagementController.updateClient(req.params.clientId, req.body.clientInformation);
 
+        log(
+          LOG_LEVEL.INFO,
+          parseLogData(
+            'Client Management Router',
+            `Received from ${req.headers['x-forwarded-for']}, Operation - Update client. ${'\r\n'
+             }Client Id: ${req.params.clientId} ${'\r\n'
+             }New Client information: ${req.body.clientInformation}`,
+            200,
+            null,
+          ),
+        );
+
         return res.status(200).send(clientInformation);
       }
+
+      log(
+        LOG_LEVEL.INFO,
+        parseLogData(
+          'Client Management Router',
+          `Received from ${req.headers['x-forwarded-for']}, Operation - Update client. ${'\r\n'
+           } Results: Missing client id or information`,
+          400,
+          null,
+        ),
+      );
 
       throw new InvalidParameter(errorMessages.MISSING_CLIENT_ID_OR_INFORMATION);
     },
@@ -94,12 +162,46 @@ export const setManagementRoutes = (router: Router) => {
 
         // If the deletion succeed
         if (await ManagementController.deleteClient(req.params.clientId)) {
+
+          log(
+            LOG_LEVEL.INFO,
+            parseLogData(
+              'Client Management Router',
+              `Received from ${req.headers['x-forwarded-for']}, Operation - Delete client. ${'\r\n'
+               } Client Id: ${req.params.clientId}`,
+              204,
+              null,
+            ),
+          );
+
           return res.sendStatus(204);
         }
+
+        log(
+          LOG_LEVEL.ERROR,
+          parseLogData(
+            'Client Management Router',
+            `Unknown Error: Received from ${req.headers['x-forwarded-for']
+             }, Operation - Delete client. ${'\r\n'} Client Id: ${req.params.clientId}`,
+            500,
+            null,
+          ),
+        );
 
         // Somehow the deletion failed
         return res.status(500).send('Internal Server Error');
       }
+
+      log(
+        LOG_LEVEL.INFO,
+        parseLogData(
+          'Client Management Router',
+          `Received from ${req.headers['x-forwarded-for']}, Operation - Delete client. ${'\r\n'
+           } Results: Missing client id`,
+          400,
+          null,
+        ),
+      );
 
       throw new InvalidParameter(errorMessages.MISSING_CLIENT_ID);
     },

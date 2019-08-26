@@ -24,6 +24,10 @@ Adjust your settings in each one of them for generating appropriate `.env` file 
 > `-password`   The password of the db user. e.g. `-password 123456`
 > 
 > `-hostValidation` Enabling host validation, value should be `0` for disable or `1` for enable. e.g. `-hostValidation 1` 
+> 
+> `-logsDir` The directory path used for log files. *Default value:* 'logs'. (in the same hierarchy as src)
+>
+> `-logFileName` The name of the log file. *Default value:* 'ospike-log.txt'
 >
 >
 > *OPTIONAL Settings*:
