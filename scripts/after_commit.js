@@ -15,7 +15,10 @@ function afterCommit() {
 
     for (deleteCred of Object.keys(config.credentailsToDelete)) {
       const index = unmodifiedScriptValue.indexOf(deleteCred) + 1;
-      unmodifiedScriptValue[index] = envsConfigurations[scriptName][deleteCred]
+
+      if (index !== -1) {
+        unmodifiedScriptValue[index] = envsConfigurations[scriptName][deleteCred];
+      }
     }
 
     pkgJsonFile.scripts[scriptName] = unmodifiedScriptValue.join(' ');

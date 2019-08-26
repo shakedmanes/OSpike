@@ -25,6 +25,9 @@ const config = {
     '-username': 'DB_USERNAME_HERE',
     '-password': 'DB_PASSWORD_HERE',
     '-hostValidation': 0,
+    '-apmServiceName': 'APM_SERVICE_HERE',
+    '-apmServerUrl': 'APM_SERVER_URL_HERE',
+    '-apmSecretToken': 'APM_SECRET_TOKEN_HERE'
   },
 
   // After commit file name
