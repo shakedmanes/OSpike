@@ -1,9 +1,18 @@
 // server
 
+// Must run that at first for configuration
+require('elastic-apm-node').start({
+  serviceName: process.env.ELASTIC_APM_SERVICE_NAME,
+  serverUrl: process.env.ELASTIC_APM_SERVER_URL,
+  secretToken: process.env.ELASTIC_APM_SECRET_TOKEN || '',
+  active: process.env.NODE_ENV === 'prod',
+});
+
 import * as https from 'https';
 import { readFileSync } from 'fs';
 import app from './app';
 import config from './config';
+import { LOG_LEVEL, log, parseLogData } from './utils/logger';
 
 // TODO: Change these for your own certificates.  This was generated through the commands:
 // openssl genrsa -out privatekey.pem 2048
@@ -16,7 +25,11 @@ const options = {
 };
 
 https.createServer(options, app).listen(app.get('port'), () => {
-  console.log(`Authorization Server is running at https://localhost:${app.get('port')}
-               in ${app.get('env')} mode`);
+  const logMessage =
+    `Authorization Server is running at port ${app.get('port')} in ${app.get('env')} mode`;
+
+  log(LOG_LEVEL.INFO, parseLogData('Server Initialization', logMessage, null, null));
+
+  console.log(logMessage);
   console.log('Press CTRL-C to stop\n');
 });

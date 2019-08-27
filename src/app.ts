@@ -1,14 +1,5 @@
 // app
 
-// Must run that at first for configuration
-import * as apm from 'elastic-apm-node';
-apm.start({
-  serviceName: process.env.ELASTIC_APM_SERVICE_NAME,
-  serverUrl: process.env.ELASTIC_APM_SERVER_URL,
-  secretToken: process.env.ELASTIC_APM_SECRET_TOKEN || '',
-  active: process.env.NODE_ENV === 'prod',
-});
-
 import * as bodyParser from 'body-parser';
 import passport from 'passport';
 import express from 'express';
