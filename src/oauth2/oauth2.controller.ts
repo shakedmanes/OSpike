@@ -134,7 +134,7 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
       parseLogData(
         'OAuth2 Flows',
         `Flow: Implicit \r\nResults: Generated token for the following properties.${'\r\n'
-         }jwt: ${accessToken.value}`,
+         }audience: ${accessToken.audience}`,
         200,
         null,
       ),
@@ -192,7 +192,7 @@ server.exchange(oauth2orize.exchange.code(
             'OAuth2 Flows',
             `Flow: Exchange Authorization code ${'\r\n'
              }Results: Generated token for the following properties.${'\r\n'
-             }jwt: ${accessToken.value}`,
+             }JWT Contents: ${JSON.stringify(OAuth2Utils.stripJWTAccessToken(accessToken.value))}`,
             200,
             null,
           ),
@@ -278,7 +278,7 @@ server.exchange(oauth2orize.exchange.password(
             'OAuth2 Flows',
             `Flow: Resource Owner Password Credentials ${'\r\n'
              }Results: Generated token for the following properties.${'\r\n'
-             }jwt: ${accessToken.value}`,
+             }JWT Contents: ${JSON.stringify(OAuth2Utils.stripJWTAccessToken(accessToken.value))}`,
             200,
             null,
           ),
@@ -359,7 +359,7 @@ server.exchange(oauth2orize.exchange.clientCredentials(
           'OAuth2 Flows',
           `Flow: Client Credentials ${'\r\n'
            }Results: Generated token for the following properties.${'\r\n'
-           }jwt: ${accessToken.value}`,
+           }JWT Contents: ${JSON.stringify(OAuth2Utils.stripJWTAccessToken(accessToken.value))}`,
           200,
           null,
         ),
@@ -431,7 +431,7 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
           'OAuth2 Flows',
           `Flow: Refresh Token ${'\r\n'
            }Results: Generated new token for the following properties.${'\r\n'
-           }jwt: ${accessToken.value}`,
+           }JWT Contents: ${JSON.stringify(OAuth2Utils.stripJWTAccessToken(accessToken.value))}`,
           200,
           null,
         ),
@@ -606,7 +606,7 @@ export const tokenIntrospectionEndpoint = [
             'OAuth2 Flows',
             `Flow: Token Introspection ${'\r\n'
             }Results: Return information regarding the following token.${'\r\n'
-            }jwt: ${accessToken.value}`,
+            }JWT Contents: ${JSON.stringify(OAuth2Utils.stripJWTAccessToken(accessToken.value))}`,
             200,
             null,
           ),

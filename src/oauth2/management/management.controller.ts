@@ -12,6 +12,8 @@ import {
   isPartialIClientBasicInformation,
 } from './management.interface';
 import clientModel from '../../client/client.model';
+import accessTokenModel from '../../accessToken/accessToken.model';
+import authCodeModel from '../../authCode/authCode.model';
 import { ClientNotFound, BadClientInformation } from './management.error';
 
 // TODO: Add error handling
@@ -120,6 +122,32 @@ export class ManagementController {
     }
 
     throw new ClientNotFound('Invalid client id or client registration token given');
+  }
+
+  /**
+   * Reset client credentials (Client ID, Client Secret) and all access tokens and auth codes
+   * for specific client.
+   * @param clientId - Client id of the client to reset
+   * @returns The updated client information
+   */
+  static async resetClientCredentials(clientId: string) {
+
+    const clientDoc = await clientModel.findOne({ id: clientId });
+
+    if (!clientDoc) {
+      throw new ClientNotFound('Invalid client id or client registration token given');
+    }
+
+    // Removing all associated access tokens and auth codes for the client
+    await accessTokenModel.remove({ clientId: clientDoc._id });
+    await authCodeModel.remove({ clientId: clientDoc._id });
+
+    // Generate new client id and client secret
+    clientDoc.id = clientIdValueGenerator();
+    clientDoc.secret = clientSecretValueGenerator();
+    await clientDoc.save();
+
+    return clientDoc;
   }
 
   /**

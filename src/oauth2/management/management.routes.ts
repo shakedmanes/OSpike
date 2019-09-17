@@ -61,7 +61,7 @@ export const setManagementRoutes = (router: Router) => {
         parseLogData(
           'Client Management Router',
           `Received from ${req.headers['x-forwarded-for']}, Operation - Register client. ${'\r\n'
-           } Results: Missing client information`,
+           }Results: Missing client information`,
           400,
           null,
         ),
@@ -100,7 +100,7 @@ export const setManagementRoutes = (router: Router) => {
         parseLogData(
           'Client Management Router',
           `Received from ${req.headers['x-forwarded-for']}, Operation - Read client. ${'\r\n'
-           } Results: Missing client id`,
+           }Results: Missing client id`,
           400,
           null,
         ),
@@ -141,7 +141,7 @@ export const setManagementRoutes = (router: Router) => {
         parseLogData(
           'Client Management Router',
           `Received from ${req.headers['x-forwarded-for']}, Operation - Update client. ${'\r\n'
-           } Results: Missing client id or information`,
+           }Results: Missing client id or information`,
           400,
           null,
         ),
@@ -150,6 +150,55 @@ export const setManagementRoutes = (router: Router) => {
       throw new InvalidParameter(errorMessages.MISSING_CLIENT_ID_OR_INFORMATION);
     },
   ));
+
+  // Reset client credentials endpoint
+  router.patch(
+    `${config.OAUTH_MANAGEMENT_ENDPOINT}/:clientId`,
+    authenticateManagementMiddleware,
+    Wrapper.wrapAsync(async (req: Request, res: Response) => {
+
+      // If the request contains the client registration token and id
+      if (req.params.clientId) {
+
+        // Resetting the client credentials and access tokens and auth codes
+        const newClientDoc = await ManagementController.resetClientCredentials(req.params.clientId);
+
+        // If successfully created new client
+        if (newClientDoc) {
+
+          log(
+            LOG_LEVEL.INFO,
+            parseLogData(
+              'Client Management Router',
+              `Received from ${req.headers['x-forwarded-for']}, Operation - Reset Client. ${'\r\n'
+               } Client Id: ${newClientDoc.id} ${'\r\n'} Client Name: ${newClientDoc.name}`,
+              200,
+              null,
+            ),
+          );
+
+          return res.status(200).send(newClientDoc);
+        }
+
+        log(
+          LOG_LEVEL.ERROR,
+          parseLogData(
+            'Client Management Router',
+            `Unknown Error: Received from ${req.headers['x-forwarded-for']
+             }, Operation - Reset Client. ${'\r\n'
+             } Results: Client id - ${req.params.id} is not reset due unknown error. `,
+            500,
+            null,
+          ),
+        );
+
+        // Somehow the resetting failed
+        return res.status(500).send('Internal Server Error');
+      }
+
+      throw new InvalidParameter(errorMessages.MISSING_CLIENT_ID);
+    }),
+  );
 
   // Delete client endpoint
   router.delete(
@@ -197,7 +246,7 @@ export const setManagementRoutes = (router: Router) => {
         parseLogData(
           'Client Management Router',
           `Received from ${req.headers['x-forwarded-for']}, Operation - Delete client. ${'\r\n'
-           } Results: Missing client id`,
+           }Results: Missing client id`,
           400,
           null,
         ),

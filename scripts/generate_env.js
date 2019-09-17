@@ -11,17 +11,17 @@ function generateEnvFile(nodeEnv, port, hostname, mongoUrl, dbUsername, dbPasswo
 }
 
 // Getting command arguments or using predefined values
-const env = process.argv.length >= process.argv.indexOf('-env') + 1 ? process.argv[process.argv.indexOf('-env') + 1] : 'dev';
-const port = process.argv.length >= process.argv.indexOf('-port') + 1 ? process.argv[process.argv.indexOf('-port') + 1 ]: 1337;
-const hostname = process.argv.length >= process.argv.indexOf('-hostname') + 1 ? process.argv[process.argv.indexOf('-hostname') + 1]: 'localhost';
-const mongoUrl = process.argv.length >= process.argv.indexOf('-mongoUrl') + 1 ? process.argv[process.argv.indexOf('-mongoUrl') + 1]: '';
-const username = process.argv.length >= process.argv.indexOf('-username') + 1 ? process.argv[process.argv.indexOf('-username') + 1]: '';
-const password = process.argv.length >= process.argv.indexOf('-password') + 1 ? process.argv[process.argv.indexOf('-password') + 1]: '';
-const hostValidation = process.argv.length >= process.argv.indexOf('-hostValidation') + 1 ? process.argv[process.argv.indexOf('-hostValidation') + 1]: 0;
-const apmServiceName = process.argv.length >= process.argv.indexOf('-apmServiceName') + 1 ? process.argv[process.argv.indexOf('-apmServiceName') + 1]: '';
-const apmServerUrl = process.argv.length >= process.argv.indexOf('-apmServerUrl') + 1 ? process.argv[process.argv.indexOf('-apmServerUrl') + 1]: '';
-const apmSecretToken = process.argv.length >= process.argv.indexOf('-apmSecretToken') + 1 ? process.argv[process.argv.indexOf('-apmSecretToken') + 1]: '';
-const logsDir = process.argv.length >= process.argv.indexOf('-logsDir') + 1 ? process.argv[process.argv.indexOf('-logsDir') + 1]: config.defaultLogDir;
-const logsFileName = process.argv.length >= process.argv.indexOf('-logsFileName') + 1 ? process.argv[process.argv.indexOf('-logsFileName') + 1]: config.defaultLogFileName;
+const env = process.argv.indexOf('-env') !== -1 ? process.argv[process.argv.indexOf('-env') + 1] : 'dev';
+const port = process.argv.indexOf('-port') !== -1 ? process.argv[process.argv.indexOf('-port') + 1 ]: 1337;
+const hostname = process.argv.indexOf('-hostname') !== -1 ? process.argv[process.argv.indexOf('-hostname') + 1]: 'localhost';
+const mongoUrl = process.argv.indexOf('-mongoUrl') !== -1 ? process.argv[process.argv.indexOf('-mongoUrl') + 1]: '';
+const username = process.argv.indexOf('-username') !== -1 ? process.argv[process.argv.indexOf('-username') + 1]: '';
+const password = process.argv.indexOf('-password') !== -1 ? process.argv[process.argv.indexOf('-password') + 1]: '';
+const hostValidation = process.argv.indexOf('-hostValidation') !== -1 ? process.argv[process.argv.indexOf('-hostValidation') + 1]: 0;
+const apmServiceName = process.argv.indexOf('-apmServiceName') !== -1 ? process.argv[process.argv.indexOf('-apmServiceName') + 1]: '';
+const apmServerUrl = process.argv.indexOf('-apmServerUrl') !== -1 ? process.argv[process.argv.indexOf('-apmServerUrl') + 1]: '';
+const apmSecretToken = process.argv.indexOf('-apmSecretToken') !== -1 ? process.argv[process.argv.indexOf('-apmSecretToken') + 1]: '';
+const logsDir = process.argv.indexOf('-logsDir') !== -1 ? process.argv[process.argv.indexOf('-logsDir') + 1]: config.defaultLogDir;
+const logsFileName = process.argv.indexOf('-logsFileName') !== -1 ? process.argv[process.argv.indexOf('-logsFileName') + 1]: config.defaultLogFileName;
 
 generateEnvFile(env, port, hostname, mongoUrl, username, password, hostValidation, apmServiceName, apmServerUrl, apmSecretToken, logsDir, logsFileName);
