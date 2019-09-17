@@ -2,11 +2,13 @@
 
 import { expect } from 'chai';
 import { default as request }  from 'supertest';
+import { URL } from 'url';
 import { IClientInformation, IClientBasicInformation } from './management.interface';
 import { authFailMessages } from './management.auth';
 import { errorMessages } from './management.routes';
 import clientModel from '../../client/client.model';
 import accessTokenModel from '../../accessToken/accessToken.model';
+import authCodeModel from '../../authCode/authCode.model';
 import {
   propertyOf,
   dismantleNestedProperties,
@@ -72,6 +74,17 @@ describe('Client Management Routes Functionality', () => {
     scopes: ['something'],
   });
 
+  let registeredClient2 = new clientModel({
+    id: 'registeredClientId2',
+    secret: 'registeredClientSecret2',
+    audienceId: 'registeredClientAudienceId2',
+    registrationToken: 'registeredClientRegistrationTokenBlaBla2',
+    name: 'registeredClient2',
+    hostUris: ['https://registeredClient.register.com2'],
+    redirectUris: ['/callback/some12'],
+    scopes: ['something2'],
+  });
+
   let updatedClient = new clientModel({
     id: 'updatedClientId',
     secret: 'updatedClientSecret',
@@ -133,25 +146,26 @@ describe('Client Management Routes Functionality', () => {
     clientRegistrer = await clientRegistrer.save();
     notClientRegistrer = await notClientRegistrer.save();
 
-    clientRegistrerAccessToken = await new accessTokenModel({
-      clientId: clientRegistrer._id,
-      audience: config.issuerHostUri,
-      value: '123456789',
-      scopes: [config.CLIENT_MANAGER_SCOPE],
-      grantType: 'client_credentials',
-      expiresAt: 999999999999,
-    }).save();
+    // clientRegistrerAccessToken = await new accessTokenModel({
+    //   clientId: clientRegistrer._id,
+    //   audience: config.issuerHostUri,
+    //   value: '123456789',
+    //   scopes: [config.CLIENT_MANAGER_SCOPE],
+    //   grantType: 'client_credentials',
+    //   expiresAt: 999999999999,
+    // }).save();
 
-    notClientRegistrerAccessToken = await new accessTokenModel({
-      clientId: notClientRegistrer._id,
-      audience: config.issuerHostUri,
-      value: '987654321',
-      scopes: ['blabla'],
-      grantType: 'client_credentials',
-      expiresAt: 999999999999,
-    }).save();
+    // notClientRegistrerAccessToken = await new accessTokenModel({
+    //   clientId: notClientRegistrer._id,
+    //   audience: config.issuerHostUri,
+    //   value: '987654321',
+    //   scopes: ['blabla'],
+    //   grantType: 'client_credentials',
+    //   expiresAt: 999999999999,
+    // }).save();
 
     registeredClient = await registeredClient.save();
+    registeredClient2 = await registeredClient2.save();
     updatedClient = await updatedClient.save();
     updatedClient2 = await updatedClient2.save();
     deletedClient = await deletedClient.save();
@@ -164,6 +178,30 @@ describe('Client Management Routes Functionality', () => {
 
   describe('(Register Client) - /register', () => {
 
+    before(async () => {
+      clientRegistrerAccessToken = await new accessTokenModel({
+        clientId: clientRegistrer._id,
+        audience: config.issuerHostUri,
+        value: '123456789',
+        scopes: [config.CLIENT_MANAGER_SCOPE],
+        grantType: 'client_credentials',
+        expiresAt: 999999999999,
+      }).save();
+
+      notClientRegistrerAccessToken = await new accessTokenModel({
+        clientId: notClientRegistrer._id,
+        audience: config.issuerHostUri,
+        value: '987654321',
+        scopes: ['blabla'],
+        grantType: 'client_credentials',
+        expiresAt: 999999999999,
+      }).save();
+    });
+
+    after(async () => {
+      await deleteCollections(['accesstokens']);
+    });
+
     it('Should register client by client manager that does have permissions', (done) => {
 
       request(app)
@@ -171,6 +209,11 @@ describe('Client Management Routes Functionality', () => {
         .send({ clientInformation: validClientInformation })
         .set(config.CLIENT_MANAGER_AUTHORIZATION_HEADER, clientRegistrerAccessToken.value)
         .expect((res) => {
+
+          // Quick fix due inserting default port to each host
+          validClientInformation.hostUris = validClientInformation.hostUris.map((val) => {
+            return (!(new URL(val).port) ? val + ':443' : val);
+          });
 
           expect(res).to.nested.include({
             status: 201,
@@ -220,6 +263,31 @@ describe('Client Management Routes Functionality', () => {
   });
 
   describe('(Read Client) - /register/:id', () => {
+
+    before(async () => {
+      clientRegistrerAccessToken = await new accessTokenModel({
+        clientId: clientRegistrer._id,
+        audience: config.issuerHostUri,
+        value: '123456789',
+        scopes: [config.CLIENT_MANAGER_SCOPE],
+        grantType: 'client_credentials',
+        expiresAt: 999999999999,
+      }).save();
+
+      notClientRegistrerAccessToken = await new accessTokenModel({
+        clientId: notClientRegistrer._id,
+        audience: config.issuerHostUri,
+        value: '987654321',
+        scopes: ['blabla'],
+        grantType: 'client_credentials',
+        expiresAt: 999999999999,
+      }).save();
+    });
+
+    after(async () => {
+      await deleteCollections(['accesstokens']);
+    });
+
     it(
       'Should read existing client information by client manager that does have permissions',
       (done) => {
@@ -323,6 +391,30 @@ describe('Client Management Routes Functionality', () => {
 
   describe('(Update Client) - /register/:id', () => {
 
+    before(async () => {
+      clientRegistrerAccessToken = await new accessTokenModel({
+        clientId: clientRegistrer._id,
+        audience: config.issuerHostUri,
+        value: '123456789',
+        scopes: [config.CLIENT_MANAGER_SCOPE],
+        grantType: 'client_credentials',
+        expiresAt: 999999999999,
+      }).save();
+
+      notClientRegistrerAccessToken = await new accessTokenModel({
+        clientId: notClientRegistrer._id,
+        audience: config.issuerHostUri,
+        value: '987654321',
+        scopes: ['blabla'],
+        grantType: 'client_credentials',
+        expiresAt: 999999999999,
+      }).save();
+    });
+
+    after(async () => {
+      await deleteCollections(['accesstokens']);
+    });
+
     it(
       'Should update existing client information by client manager that does have permissions',
       (done) => {
@@ -332,6 +424,12 @@ describe('Client Management Routes Functionality', () => {
           .set('Authorization', updatedClient.registrationToken)
           .send({ clientInformation: updatedInformation })
           .expect((res) => {
+
+            // Quick fix due inserting default port to each host
+            updatedInformation.hostUris = updatedInformation.hostUris.map((val) => {
+              return (!(new URL(val).port) ? val + ':443' : val);
+            });
+
             expect(res).to.nested.include({
               status: 200,
               // Dismantle properties so chai can include them
@@ -458,7 +556,181 @@ describe('Client Management Routes Functionality', () => {
     );
   });
 
+  describe('(Reset Client) - /register/:id', () => {
+
+    before(async () => {
+
+      clientRegistrerAccessToken = await new accessTokenModel({
+        clientId: clientRegistrer._id,
+        audience: config.issuerHostUri,
+        value: '123456789',
+        scopes: [config.CLIENT_MANAGER_SCOPE],
+        grantType: 'client_credentials',
+        expiresAt: 999999999999,
+      }).save();
+
+      notClientRegistrerAccessToken = await new accessTokenModel({
+        clientId: notClientRegistrer._id,
+        audience: config.issuerHostUri,
+        value: '987654321',
+        scopes: ['blabla'],
+        grantType: 'client_credentials',
+        expiresAt: 999999999999,
+      }).save();
+
+      await accessTokenModel.create({
+        value: 'AccessTokenJWTValue',
+        clientId: registeredClient2._id,
+        audience: 'SomeAudienceId',
+        grantType: 'client_credentials',
+        scopes: [],
+      });
+      await authCodeModel.create({
+        redirectUri: `${registeredClient2.hostUris[0] + registeredClient2.redirectUris[0]}`,
+        value: 'SomeAuthCodeValue',
+        clientId: registeredClient2._id,
+        userId: 'SomeUserId',
+        scopes: [],
+        audience: 'AudienceId',
+      });
+    });
+
+    after(async () => {
+      await deleteCollections(['accesstokens', 'authcodes']);
+    });
+
+    it('Should reset client credentials by client manager that does have permissions',
+       async () => {
+         const response =
+          await request(app)
+                 .patch(`${registerEndpoint}/${registeredClient2.id}`)
+                 .set(config.CLIENT_MANAGER_AUTHORIZATION_HEADER, clientRegistrerAccessToken.value)
+                 .set('Authorization', registeredClient2.registrationToken);
+
+         expect(response.body).to.not.have.property(
+           propertyOf<IClientInformation>('id'),
+           registeredClient2.id,
+         );
+         expect(response.body).to.not.have.property(
+           propertyOf<IClientInformation>('secret'),
+           registeredClient2.secret,
+         );
+
+         expect(await accessTokenModel.find({ clientId: registeredClient2._id }))
+         .to.be.an('array').that.is.empty;
+         expect(await authCodeModel.find({ clientId: registeredClient2._id }))
+         .to.be.an('array').that.is.empty;
+       },
+    );
+
+    it('Should not reset client credentials without any authorization',
+       (done) => {
+         request(app)
+          .patch(`${registerEndpoint}/${registeredClient2.id}`)
+          .expect(400, { message: authFailMessages.CLIENT_MANAGER_TOKEN_MISSING })
+          .end(done);
+       },
+    );
+
+    it('Should not reset client credentials without client manager token',
+       (done) => {
+         request(app)
+          .patch(`${registerEndpoint}/${registeredClient2.id}`)
+          .set('Authorization', registeredClient2.registrationToken)
+          .expect(400, { message: authFailMessages.CLIENT_MANAGER_TOKEN_MISSING })
+          .end(done);
+       },
+    );
+
+    it('Should not reset client credentials without client registration token',
+       (done) => {
+         request(app)
+          .patch(`${registerEndpoint}/${registeredClient2.id}`)
+          .set(config.CLIENT_MANAGER_AUTHORIZATION_HEADER, clientRegistrerAccessToken.value)
+          .expect(400, { message: authFailMessages.REGISTRATION_TOKEN_MISSING })
+          .end(done);
+       },
+    );
+
+    it(`Should not reset client credentials with client manager token that ${''
+       }does not have permissions`,
+       (done) => {
+         request(app)
+          .patch(`${registerEndpoint}/${registeredClient2.id}`)
+          .set(config.CLIENT_MANAGER_AUTHORIZATION_HEADER, notClientRegistrerAccessToken.value)
+          .set('Authorization', registeredClient2.registrationToken)
+          .expect(403, { message: authFailMessages.INSUFFICIENT_CLIENT_MANAGER_TOKEN })
+          .end(done);
+       },
+    );
+
+    it('Should not reset client credentials by invalid client id',
+       (done) => {
+         request(app)
+          .patch(`${registerEndpoint}/${'InvalidClientId'}`)
+          .set(config.CLIENT_MANAGER_AUTHORIZATION_HEADER, clientRegistrerAccessToken.value)
+          .set('Authorization', registeredClient2.registrationToken)
+          .expect(400, { message: authFailMessages.INVALID_REG_TOKEN_OR_CLIENT_ID })
+          .end(done);
+       },
+    );
+
+    it('Should not reset client credentials with client id with unassociated registration token',
+       (done) => {
+         request(app)
+          .patch(`${registerEndpoint}/${registeredClient.id}`)
+          .set(config.CLIENT_MANAGER_AUTHORIZATION_HEADER, clientRegistrerAccessToken.value)
+          .set('Authorization', registeredClient2.registrationToken)
+          .expect(400, { message: authFailMessages.INVALID_REG_TOKEN_OR_CLIENT_ID })
+          .end(done);
+       },
+    );
+
+    it('Should not reset client credentials by invalid registration token',
+       (done) => {
+         request(app)
+          .patch(`${registerEndpoint}/${registeredClient.id}`)
+          .set(config.CLIENT_MANAGER_AUTHORIZATION_HEADER, clientRegistrerAccessToken.value)
+          .set('Authorization', 'invalidRegistrationToken')
+          .expect(400, { message: authFailMessages.INVALID_REG_TOKEN_OR_CLIENT_ID })
+          .end(done);
+       },
+    );
+
+    it('Should not reset client credentials without specify client id',
+       (done) => {
+         request(app)
+          .patch(`${registerEndpoint}/`)
+          .set(config.CLIENT_MANAGER_AUTHORIZATION_HEADER, clientRegistrerAccessToken.value)
+          .set('Authorization', registeredClient2.registrationToken)
+          .expect(404) // Because the route not found, express decide to drop it if id not present
+          .end(done);
+       },
+    );
+
+  });
+
   describe('(Delete Client) - /register/:id', () => {
+
+    before(async () => {
+      clientRegistrerAccessToken = await new accessTokenModel({
+        clientId: clientRegistrer._id,
+        audience: config.issuerHostUri,
+        value: '123456789',
+        scopes: [config.CLIENT_MANAGER_SCOPE],
+        grantType: 'client_credentials',
+        expiresAt: 999999999999,
+      }).save();
+
+      notClientRegistrerAccessToken = await new accessTokenModel({
+        clientId: notClientRegistrer._id,
+        audience: config.issuerHostUri,
+        value: '987654321',
+        scopes: ['blabla'],
+        grantType: 'client_credentials',
+        expiresAt: 999999999999,
+      }).save();
+    });
 
     // Creating the deleted client back in the db for each test if deleted
     afterEach(async () => {

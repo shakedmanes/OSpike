@@ -2,11 +2,14 @@
 
 import { expect } from 'chai';
 import * as mongoose from 'mongoose';
+import { URL } from 'url';
 import { ManagementController } from './management.controller';
 import { IClientInformation, IClientBasicInformation } from './management.interface';
 import { propertyOf, generateObjectSubsets } from '../../utils/objectUtils';
 import { deleteCollections } from '../../test';
 import clientModel from '../../client/client.model';
+import accessTokenModel from '../../accessToken/accessToken.model';
+import authCodeModel from '../../authCode/authCode.model';
 import { ClientNotFound, BadClientInformation } from './management.error';
 
 describe('Client Management Operations Functionality', async () => {
@@ -64,6 +67,16 @@ describe('Client Management Operations Functionality', async () => {
     name: 'registerdClient4',
     hostUris: ['https://wowow.okokok'],
     redirectUris: ['/callback/to', '/callback/redirect'],
+  });
+
+  let registerdClient5 = new clientModel({
+    id: 'NotCreatedBefore123',
+    secret: 'VerySecretSuperDuper',
+    audienceId: 'registredClient5AudienceId',
+    registrationToken: 'registrationTokenRegisteredClient5',
+    name: 'registerClient5',
+    hostUris: ['https://registerdClient5.com'],
+    redirectUris: ['/callbacks'],
   });
 
   // Clients for delete queries
@@ -217,6 +230,7 @@ describe('Client Management Operations Functionality', async () => {
     registerdClient2 = await registerdClient2.save();
     registerdClient3 = await registerdClient3.save();
     registerdClient4 = await registerdClient4.save();
+    registerdClient5 = await registerdClient5.save();
 
     deleteClient = await deleteClient.save();
     deleteClient2 = await deleteClient2.save();
@@ -414,6 +428,12 @@ describe('Client Management Operations Functionality', async () => {
     it('Should update existing client with valid information', () => {
       const updatedClient =
         ManagementController.updateClient(registerdClient.id, validUpdateClientInfo);
+
+      // Quick fix due inserting default port to each host
+      validUpdateClientInfo.hostUris = validUpdateClientInfo.hostUris.map((val) => {
+        return (!(new URL(val).port) ? val + ':443' : val);
+      });
+
       const updatedClient2 =
         ManagementController.updateClient(registerdClient2.id, validUpdateClientInfo2);
 
@@ -602,6 +622,59 @@ describe('Client Management Operations Functionality', async () => {
 
          return Promise.all(errorPromises);
        });
+  });
+
+  describe('resetClientCredentails()', () => {
+
+    before(async () => {
+      await accessTokenModel.create({
+        value: 'AccessTokenJWTValue',
+        clientId: registerdClient5._id,
+        audience: 'SomeAudienceId',
+        grantType: 'client_credentials',
+        scopes: [],
+      });
+      await authCodeModel.create({
+        redirectUri: `${registerdClient5.hostUris[0] + registerdClient5.redirectUris[0]}`,
+        value: 'SomeAuthCodeValue',
+        clientId: registerdClient5._id,
+        userId: 'SomeUserId',
+        scopes: [],
+        audience: 'AudienceId',
+      });
+    });
+
+    after(async () => {
+      await deleteCollections(['accesstokens', 'authcodes']);
+    });
+
+    it(`Should reset client credentials and remove all ${
+       ''}access tokens and auth codes associated to the client`,
+       () => {
+         const updatedClient = ManagementController.resetClientCredentials(registerdClient5.id);
+
+         return Promise.all([
+           expect(updatedClient).to.eventually.not.have.property(
+             propertyOf<IClientInformation>('id'),
+             registerdClient5.id,
+           ),
+           expect(updatedClient).to.eventually.not.have.property(
+             propertyOf<IClientInformation>('secret'),
+             registerdClient5.secret,
+           ),
+           expect(accessTokenModel.find({ clientId: registerdClient2._id }))
+           .to.eventually.be.an('array').that.is.empty,
+           expect(authCodeModel.find({ clientId: registerdClient2._id }))
+           .to.eventually.be.an('array').that.is.empty,
+         ]);
+       },
+    );
+
+    it(`Should not reset client with unexisting client id`, () => {
+      return expect(ManagementController.resetClientCredentials('unexistingClientId'))
+             .to.be.rejectedWith(ClientNotFound);
+    });
+
   });
 
   describe('deleteClient()', () => {
