@@ -7,6 +7,7 @@ import { IAccessToken, collectionName } from './accessToken.interface';
 import { clientRefValidator } from '../client/client.validator';
 import { userRefValidator } from '../user/user.validator';
 import config from '../config';
+import { AccessTokenLimitExceeded } from './accessToken.error';
 
 // TODO: Define scope model and scope types
 // TODO: Define specific grant types available for token
@@ -14,6 +15,12 @@ import config from '../config';
 export const errorMessages = {
   DUPLICATE_ACCESS_TOKEN: `There's already token for the client and the user and the audience.`,
   DUPLICATE_ACCESS_TOKEN_WITHOUT_USER: `There's already token for the client and the audience.`,
+  LIMIT_VIOLATION_ACCESS_TOKEN:
+    `Access Token LIMIT Exceeded - There's already ${config.ACCESS_TOKEN_COUNT_LIMIT}${''
+    } tokens for the client and the user and the audience.`,
+  LIMIT_VIOLATION_ACCESS_TOKEN_WITHOUT_USER:
+    `Access Token LIMIT Exceeded - There's already ${config.ACCESS_TOKEN_COUNT_LIMIT}${''
+    } tokens for the client and the audience.`,
 };
 
 const accessTokenSchema = new Schema(
@@ -60,27 +67,68 @@ const accessTokenSchema = new Schema(
 );
 
 // Ensures there's only one token for user in specific client app and audience
-accessTokenSchema.index({ clientId: 1, userId: 1, audience: 1 }, { unique: true });
+// accessTokenSchema.index({ clientId: 1, userId: 1, audience: 1 }, { unique: true });
 
 accessTokenSchema.pre<IAccessToken>(
   'save',
   async function (this: IAccessToken, next: any) {
-    const foundToken = await accessTokenModel.findOne({
+    // const foundToken = await accessTokenModel.findOne({
+    //   clientId: this.clientId,
+    //   ...(this.userId ? { userId: this.userId } : { userId : { $exists: false } }),
+    //   audience: this.audience,
+    // });
+
+    // Error object for violation of access token limitation
+    let error = undefined;
+
+    const foundTokens = await accessTokenModel.find({
       clientId: this.clientId,
-      ...(this.userId ? { userId: this.userId } : { userId : { $exists: false } }),
+      ...(this.userId ? { userId: this.userId } : { userId: { $exists: false } }),
       audience: this.audience,
     });
 
-    if (foundToken &&
-       (foundToken.expireAt.getTime() +
-       (config.ACCESS_TOKEN_EXPIRATION_TIME * 1000)) <= Date.now()) {
-      await foundToken.remove();
+    let currentActiveTokensCount = foundTokens.length;
+
+    for (const currToken of foundTokens) {
+
+      // Checking if the access token is invalid by expiration time,
+      // or if theres any other access token with the same value of the currently
+      // created access token.
+      // Access tokens can have same value only if the requests for the access token
+      // performed almost in the same time, in matter of milliseconds.
+      // (Because the value of the 'exp' and 'iat' value in the JWT is in seconds)
+      // If we allow access token to be saved with the same value, it will violate
+      // the unique index on the 'value' key.
+
+      if ((currToken.expireAt.getTime() +
+          config.ACCESS_TOKEN_EXPIRATION_TIME * 1000 <= Date.now()) ||
+          (currToken.value === this.value)) {
+        await currToken.remove();
+        currentActiveTokensCount -= 1;
+      }
     }
 
-    next();
+    // TODO: Construct better error handling for errors like that
+    if (currentActiveTokensCount >= config.ACCESS_TOKEN_COUNT_LIMIT) {
+
+      // Creating this error as MongoError for easy control via mongoose error handler
+      error = new AccessTokenLimitExceeded(
+        this.userId ?
+        errorMessages.LIMIT_VIOLATION_ACCESS_TOKEN :
+        errorMessages.LIMIT_VIOLATION_ACCESS_TOKEN_WITHOUT_USER,
+      );
+    }
+
+    // if (foundToken &&
+    //    (foundToken.expireAt.getTime() +
+    //    (config.ACCESS_TOKEN_EXPIRATION_TIME * 1000)) <= Date.now()) {
+    //   await foundToken.remove();
+    // }
+
+    next(error);
   });
 
-// Construct better error handling for errors from mongo server
+// TODO: Construct better error handling for errors from mongo server
 accessTokenSchema.post('save', function save(this: IAccessToken, err: any, doc: any, next: any) {
   if (err.name === 'MongoError' && err.code === 11000) {
     err.message = this.userId ? errorMessages.DUPLICATE_ACCESS_TOKEN :
