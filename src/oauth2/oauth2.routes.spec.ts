@@ -457,40 +457,40 @@ describe('OAuth2 Flows Functionality', () => {
        },
     );
 
-    it(`Should not acquire token for registered client and user when ${''
-        }there's already token associated with the same audience`,
-       async () => {
-         const previousAccessToken = await new accessTokenModel({
-          clientId: registeredClient._id,
-          userId: registeredUser._id,
-          audience: 'https://audience',
-          value: 'abcd1234',
-          scopes: ['reading'],
-          grantType: 'password',
-         }).save();
+    // it(`Should not acquire token for registered client and user when ${''
+    //     }there's already token associated with the same audience`,
+    //    async () => {
+    //      const previousAccessToken = await new accessTokenModel({
+    //       clientId: registeredClient._id,
+    //       userId: registeredUser._id,
+    //       audience: 'https://audience',
+    //       value: 'abcd1234',
+    //       scopes: ['reading'],
+    //       grantType: 'password',
+    //      }).save();
 
-         const response =
-           await request(app)
-                  .post(TOKEN_ENDPOINT)
-                  .set(
-                    'Authorization',
-                    createAuthorizationHeader(registeredClient.id, registeredClient.secret),
-                  ).send(
-                    createTokenParameters(
-                      'password',
-                      'https://audience',
-                      'something',
-                      registeredUser.email,
-                      registeredUserPassword,
-                      ),
-                  );
-         expect(response).to.nested.include({
-           status: 400,
-           'body.message': tokenErrorMessages.DUPLICATE_ACCESS_TOKEN,
-         });
+    //      const response =
+    //        await request(app)
+    //               .post(TOKEN_ENDPOINT)
+    //               .set(
+    //                 'Authorization',
+    //                 createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+    //               ).send(
+    //                 createTokenParameters(
+    //                   'password',
+    //                   'https://audience',
+    //                   'something',
+    //                   registeredUser.email,
+    //                   registeredUserPassword,
+    //                   ),
+    //               );
+    //      expect(response).to.nested.include({
+    //        status: 400,
+    //        'body.message': tokenErrorMessages.DUPLICATE_ACCESS_TOKEN,
+    //      });
 
-       },
-    );
+    //    },
+    // );
 
     it('Should not acquire token for unregistered client',
        (done) => {
@@ -609,6 +609,163 @@ describe('OAuth2 Flows Functionality', () => {
        },
     );
 
+    it(`Should acquire limit number of tokens for registered client`,
+       async () => {
+
+         // Create all access token requests for reaching the limit
+         for (let index = 0; index < config.ACCESS_TOKEN_COUNT_LIMIT; index += 1) {
+           const response =
+             await request(app)
+                    .post(TOKEN_ENDPOINT)
+                    .set(
+                      'Authorization',
+                      createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+                    ).send(
+                      createTokenParameters('client_credentials', 'https://audience2', 'something'),
+                    );
+           // console.log(response.body);
+           console.log(index);
+
+           // Checking each token validity
+           checkTokenResponseValidity(
+             GrantType.CLIENT_CREDENTIALS,
+             response,
+             registeredClient,
+             { aud: 'https://audience2', scope: ['something'] },
+           );
+         }
+
+       },
+    );
+
+    it(`Should acquire token for registered client for different audience ${''
+       }even if reached token limit number`,
+       async () => {
+
+         const tokens = [];
+
+         // Creating first the limit number of tokens in the db
+         for (let index = 0; index < config.ACCESS_TOKEN_COUNT_LIMIT; index += 1) {
+           tokens.push(
+             await new accessTokenModel({
+               clientId: registeredClient._id,
+               audience: 'SomeAudienceId',
+               value: index,
+               scopes: ['some'],
+               grantType: 'client_credentials',
+             }).save(),
+          );
+         }
+
+         // Creating one more token, but for different audience
+         const response =
+           await request(app)
+                   .post(TOKEN_ENDPOINT)
+                   .set(
+                     'Authorization',
+                     createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+                   ).send(
+                     createTokenParameters(
+                       'client_credentials',
+                       'DifferentAudienceId',
+                       'something',
+                     ),
+                   );
+
+         checkTokenResponseValidity(
+           GrantType.CLIENT_CREDENTIALS,
+           response,
+           registeredClient,
+           { aud: 'DifferentAudienceId', scope: ['something'] },
+         );
+       },
+    );
+
+    it(`Should acquire tokens for registered client even if currently ${''
+       }there is limit number of tokens in db, but one of them is invalid`,
+       async () => {
+         const tokens = [];
+
+         // Creating first limit -1 tokens count for making one of them invalid (expired)
+         for (let index = 0; index < config.ACCESS_TOKEN_COUNT_LIMIT - 1; index += 1) {
+           tokens.push(
+            await new accessTokenModel({
+              clientId: registeredClient._id,
+              audience: 'SomeAudienceId',
+              value: index,
+              scopes: ['some'],
+              grantType: 'client_credentials',
+            }).save(),
+           );
+         }
+
+         // Creating one more token but invalid (expired)
+         tokens.push(
+          await new accessTokenModel({
+            clientId: registeredClient._id,
+            audience: 'SomeAudienceId',
+            value: 'Expired',
+            scopes: ['some'],
+            grantType: 'client_credentials',
+            expireAt: Date.now() - config.ACCESS_TOKEN_EXPIRATION_TIME * 1000 - 10000,
+          }).save(),
+         );
+
+         const response =
+           await request(app)
+                   .post(TOKEN_ENDPOINT)
+                   .set(
+                     'Authorization',
+                     createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+                   ).send(
+                     createTokenParameters('client_credentials', 'SomeAudienceId', 'something'),
+                   );
+
+         checkTokenResponseValidity(
+           GrantType.CLIENT_CREDENTIALS,
+           response,
+           registeredClient,
+           { aud: 'SomeAudienceId', scope: ['something'] },
+         );
+       },
+    );
+
+    it(`Should not acquire token for registered client if reached token limit number`,
+       async () => {
+
+         const tokens = [];
+
+         // Creating first the limit number of tokens in the db
+         for (let index = 0; index < config.ACCESS_TOKEN_COUNT_LIMIT; index += 1) {
+           tokens.push(
+             await new accessTokenModel({
+               clientId: registeredClient._id,
+               audience: 'SomeAudienceId',
+               value: index,
+               scopes: ['some'],
+               grantType: 'client_credentials',
+             }).save(),
+           );
+         }
+
+         // Creating one more token exceeding the token limit number
+         const response =
+            await request(app)
+                   .post(TOKEN_ENDPOINT)
+                   .set(
+                     'Authorization',
+                     createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+                   ).send(
+                     createTokenParameters('client_credentials', 'SomeAudienceId', 'some'),
+                   );
+
+         expect(response).to.nested.include({
+           status: 400,
+           'body.message': tokenErrorMessages.LIMIT_VIOLATION_ACCESS_TOKEN_WITHOUT_USER,
+         });
+       },
+    );
+
     it(`Should not acquire token for registered client without client authentication`,
        (done) => {
          request(app)
@@ -645,33 +802,33 @@ describe('OAuth2 Flows Functionality', () => {
        },
     );
 
-    it(`Should not acquire token for registered client when ${''
-        }there's already token associated with the same audience`,
-       async () => {
-         const previousAccessToken = await new accessTokenModel({
-          clientId: registeredClient._id,
-          audience: 'https://audience',
-          value: 'abcd1234',
-          scopes: ['reading'],
-          grantType: 'client_credentials',
-         }).save();
+    // it(`Should not acquire token for registered client when ${''
+    //     }there's already token associated with the same audience`,
+    //    async () => {
+    //      const previousAccessToken = await new accessTokenModel({
+    //       clientId: registeredClient._id,
+    //       audience: 'https://audience',
+    //       value: 'abcd1234',
+    //       scopes: ['reading'],
+    //       grantType: 'client_credentials',
+    //      }).save();
 
-         const response =
-           await request(app)
-                  .post(TOKEN_ENDPOINT)
-                  .set(
-                    'Authorization',
-                    createAuthorizationHeader(registeredClient.id, registeredClient.secret),
-                  ).send(
-                    createTokenParameters('client_credentials', 'https://audience', 'something'),
-                  );
-         expect(response).to.nested.include({
-           status: 400,
-           'body.message': tokenErrorMessages.DUPLICATE_ACCESS_TOKEN_WITHOUT_USER,
-         });
+    //      const response =
+    //        await request(app)
+    //               .post(TOKEN_ENDPOINT)
+    //               .set(
+    //                 'Authorization',
+    //                 createAuthorizationHeader(registeredClient.id, registeredClient.secret),
+    //               ).send(
+    //                 createTokenParameters('client_credentials', 'https://audience', 'something'),
+    //               );
+    //      expect(response).to.nested.include({
+    //        status: 400,
+    //        'body.message': tokenErrorMessages.DUPLICATE_ACCESS_TOKEN_WITHOUT_USER,
+    //      });
 
-       },
-    );
+    //    },
+    // );
     // Need to think about it? (The first test function)
     it.skip('Should not acquire token for registered client without scope parameter');
     it.skip(`Should not acquire token for registered client ${''

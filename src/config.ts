@@ -8,6 +8,9 @@ const config = {
   ACCESS_TOKEN_EXPIRATION_TIME: 180, // 3 Minutes
   REFRESH_TOKEN_EXPIRATION_TIME: 180, // 3 Minutes
 
+  // Access Token Count Limit - Number of tokens limitation
+  ACCESS_TOKEN_COUNT_LIMIT: 10,
+
   // Lengths
   AUTH_CODE_LENGTH: 50,
   ACCESS_TOKEN_LENGTH: 100,
