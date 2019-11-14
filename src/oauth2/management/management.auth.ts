@@ -6,6 +6,7 @@ import accessTokenModel from '../../accessToken/accessToken.model';
 import clientModel from '../../client/client.model';
 import { IClient } from '../../client/client.interface';
 import config from '../../config';
+import { LOG_LEVEL, log, parseLogData } from '../../utils/logger';
 
 // TODO: Return somehow the message of the failure
 export const authFailMessages = {
@@ -45,6 +46,17 @@ export class ClientManagementAuthenticationStrategy
 
     // If missing client manager authorization header
     if (!clientManagerToken) {
+      log(
+        LOG_LEVEL.WARN,
+        parseLogData(
+          'Client Management Authentication Strategy',
+          `Someone at ${req.headers['x-forwarded-for']
+           } tried to use client management routes without authorization header`,
+          400,
+          null,
+        ),
+      );
+
       return this.fail({ message: authFailMessages.CLIENT_MANAGER_TOKEN_MISSING }, 400);
     }
 
@@ -61,6 +73,17 @@ export class ClientManagementAuthenticationStrategy
       if (this.includeRegistrationToken) {
 
         if (!registrationToken) {
+          log(
+            LOG_LEVEL.WARN,
+            parseLogData(
+              'Client Management Authentication Strategy',
+              `Someone at ${req.headers['x-forwarded-for']
+               } tried to manage client without registration token of the client`,
+              400,
+              null,
+            ),
+          );
+
           return this.fail({ message: authFailMessages.REGISTRATION_TOKEN_MISSING }, 400);
         }
 
@@ -68,19 +91,74 @@ export class ClientManagementAuthenticationStrategy
 
         // Check if the registration token is exists and talking about the same client
         if (clientDoc && clientDoc.id === req.params.clientId) {
+          log(
+            LOG_LEVEL.INFO,
+            parseLogData(
+              'Client Management Authentication Strategy',
+              `Successfully authenticated with ${''
+               }registration token from ${req.headers['x-forwarded-for']}`,
+              200,
+              null,
+            ),
+          );
+
           return this.success(<IClient>accessTokenDoc.clientId);
         }
 
+        log(
+          LOG_LEVEL.WARN,
+          parseLogData(
+            'Client Management Authentication Strategy',
+            `Someone at ${req.headers['x-forwarded-for']
+             } tried to manage client with invalid registration token or client id`,
+            400,
+            null,
+          ),
+        );
+
         return this.fail({ message: authFailMessages.INVALID_REG_TOKEN_OR_CLIENT_ID }, 400);
       }
+
+      log(
+        LOG_LEVEL.INFO,
+        parseLogData(
+          'Client Management Authentication Strategy',
+          `Successfully authenticated from ${req.headers['x-forwarded-for']}`,
+          200,
+          null,
+        ),
+      );
 
       return this.success(<IClient>accessTokenDoc.clientId);
     }
 
     if (accessTokenDoc && (<IClient>accessTokenDoc.clientId)) {
+
+      log(
+        LOG_LEVEL.WARN,
+        parseLogData(
+          'Client Management Authentication Strategy',
+          `Someone at ${req.headers['x-forwarded-for']} with the client id ${accessTokenDoc.clientId
+          } tried to manage client with insufficient client manager privileges`,
+          403,
+          null,
+        ),
+      );
+
       // Means that the client doesn't have the permissions to manage clients
       return this.fail({ message: authFailMessages.INSUFFICIENT_CLIENT_MANAGER_TOKEN }, 403);
     }
+
+    log(
+      LOG_LEVEL.WARN,
+      parseLogData(
+        'Client Management Authentication Strategy',
+        `Someone at ${req.headers['x-forwarded-for']
+         } tried to authenticate with invalid client manager token`,
+        401,
+        null,
+      ),
+    );
 
     return this.fail({ message: authFailMessages.INVALID_CLIENT_MANAGER_TOKEN }, 401);
   }

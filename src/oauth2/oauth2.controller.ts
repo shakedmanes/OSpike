@@ -20,6 +20,7 @@ import { validatePasswordHash } from '../utils/hashUtils';
 import { isScopeEquals } from '../utils/isEqual';
 import config from '../config';
 import { BadRequest } from '../utils/error';
+import { LOG_LEVEL, log, parseLogData } from '../utils/logger';
 
 // Error messages
 export const errorMessages = {
@@ -80,7 +81,21 @@ server.grant(oauth2orize.grant.code(
         audience: ares.audience,
       }).save();
 
+      log(
+        LOG_LEVEL.INFO,
+        parseLogData(
+          'OAuth2 Flows',
+          `Flow: Authorization Code ${'\r\n'
+           }Results: Generated authorization code for the following properties.\r\n
+           clientId: ${client.id}\r\nuserId: ${user._id}\r\n\audience: ${ares.audience
+          }\r\nscopes: ${ares.scope}\r\nvalue: ${authCode.value}`,
+          200,
+          null,
+        ),
+      );
+
       return done(null, authCode.value);
+
     } catch (err) {
       return done(err);
     }
@@ -113,6 +128,17 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
       scopes: ares.scope,
       grantType: 'token',
     }).save();
+
+    log(
+      LOG_LEVEL.INFO,
+      parseLogData(
+        'OAuth2 Flows',
+        `Flow: Implicit \r\nResults: Generated token for the following properties.${'\r\n'
+         }audience: ${accessToken.audience}`,
+        200,
+        null,
+      ),
+    );
 
     return done(null, accessToken.value, { expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME });
   } catch (err) {
@@ -159,6 +185,19 @@ server.exchange(oauth2orize.exchange.code(
         const additionalParams = {
           expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME,
         };
+
+        log(
+          LOG_LEVEL.INFO,
+          parseLogData(
+            'OAuth2 Flows',
+            `Flow: Exchange Authorization code ${'\r\n'
+             }Results: Generated token for the following properties.${'\r\n'
+             }JWT Contents: ${JSON.stringify(OAuth2Utils.stripJWTAccessToken(accessToken.value))}`,
+            200,
+            null,
+          ),
+        );
+
         done(null, accessToken.value, refreshToken.value, additionalParams);
       } catch (err) {
         done(err);
@@ -168,6 +207,19 @@ server.exchange(oauth2orize.exchange.code(
       // Authorization code specified not found, pass 'false' in accessToken field for generate
       // appropiate TokenError('Invalid authorization code', 'invalid_grant').
       // This could occurres by invalid client id or redirect uri specified, not only invalid code.
+
+      log(
+        LOG_LEVEL.WARN,
+        parseLogData(
+          'OAuth2 Flows',
+          `Flow: Exchange Authorization code ${'\r\n'
+           }Results: Invalid client id or redirect uri specified.${'\r\n'
+           }`,
+          400,
+          null,
+        ),
+      );
+
       done(null, false);
     }
   },
@@ -219,11 +271,36 @@ server.exchange(oauth2orize.exchange.password(
         const additionalParams = {
           expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME,
         };
+
+        log(
+          LOG_LEVEL.INFO,
+          parseLogData(
+            'OAuth2 Flows',
+            `Flow: Resource Owner Password Credentials ${'\r\n'
+             }Results: Generated token for the following properties.${'\r\n'
+             }JWT Contents: ${JSON.stringify(OAuth2Utils.stripJWTAccessToken(accessToken.value))}`,
+            200,
+            null,
+          ),
+        );
+
         return done(null, accessToken.value, refreshToken.value, additionalParams);
       } catch (err) {
         return done(err);
       }
     }
+
+    log(
+      LOG_LEVEL.INFO,
+      parseLogData(
+        'OAuth2 Flows',
+        `Flow: Resource Owner Password Credentials ${'\r\n'
+         }Results: Invalid user name or password given.${'\r\n'
+         }username: ${username}\r\n password: ${password}`,
+        400,
+        null,
+      ),
+    );
 
     return done(null, false);
   },
@@ -275,6 +352,19 @@ server.exchange(oauth2orize.exchange.clientCredentials(
       const additionalParams = {
         expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME,
       };
+
+      log(
+        LOG_LEVEL.INFO,
+        parseLogData(
+          'OAuth2 Flows',
+          `Flow: Client Credentials ${'\r\n'
+           }Results: Generated token for the following properties.${'\r\n'
+           }JWT Contents: ${JSON.stringify(OAuth2Utils.stripJWTAccessToken(accessToken.value))}`,
+          200,
+          null,
+        ),
+      );
+
       return done(null, accessToken.value, undefined, additionalParams);
 
     } catch (err) {
@@ -334,11 +424,35 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
       const additionalParams = {
         expires_in: config.ACCESS_TOKEN_EXPIRATION_TIME,
       };
+
+      log(
+        LOG_LEVEL.INFO,
+        parseLogData(
+          'OAuth2 Flows',
+          `Flow: Refresh Token ${'\r\n'
+           }Results: Generated new token for the following properties.${'\r\n'
+           }JWT Contents: ${JSON.stringify(OAuth2Utils.stripJWTAccessToken(accessToken.value))}`,
+          200,
+          null,
+        ),
+      );
+
       return done(null, accessToken.value, newRefreshToken.value, additionalParams);
     } catch (err) {
       return done(err);
     }
   }
+
+  log(
+    LOG_LEVEL.INFO,
+    parseLogData(
+      'OAuth2 Flows',
+      `Flow: Refresh Token ${'\r\n'}Results: Invalid refresh token given.`,
+      401,
+      null,
+    ),
+  );
+
   return done(null, false);
 }));
 
@@ -458,6 +572,19 @@ export const tokenIntrospectionEndpoint = [
       try {
         jwtPayload = OAuth2Utils.stripJWTAccessToken(token);
       } catch (err) {
+
+        log(
+          LOG_LEVEL.INFO,
+          parseLogData(
+            'OAuth2 Flows',
+            `Flow: Token Introspection ${'\r\n'
+             }Results: Received expired or invalid token.${'\r\n'
+             }token: ${token}`,
+            200,
+            null,
+          ),
+        );
+
         return res.status(200).send({ active: false });
       }
 
@@ -472,6 +599,19 @@ export const tokenIntrospectionEndpoint = [
           typeof accessToken.clientId === 'object' &&
           ((<IAccessToken>accessToken.clientId).id === req.user.id ||
           (accessToken.audienceClient && accessToken.audienceClient.id === req.user.id))) {
+
+        log(
+          LOG_LEVEL.INFO,
+          parseLogData(
+            'OAuth2 Flows',
+            `Flow: Token Introspection ${'\r\n'
+            }Results: Return information regarding the following token.${'\r\n'
+            }JWT Contents: ${JSON.stringify(OAuth2Utils.stripJWTAccessToken(accessToken.value))}`,
+            200,
+            null,
+          ),
+        );
+
         return res.status(200).send({
           active: true,
           clientId: (<IAccessToken>accessToken.clientId).id,
@@ -481,6 +621,18 @@ export const tokenIntrospectionEndpoint = [
         });
       }
     }
+
+    log(
+      LOG_LEVEL.INFO,
+      parseLogData(
+        'OAuth2 Flows',
+        `Flow: Token Introspection ${'\r\n'
+         }Results: Received expired or invalid token.${'\r\n'
+         }token: ${token}`,
+        200,
+        null,
+      ),
+    );
 
     // Any other possible cases should be handled like that for preventing token scanning attacks
     return res.status(200).send({ active: false });

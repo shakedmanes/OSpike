@@ -25,7 +25,15 @@ const config = {
     '-username': 'DB_USERNAME_HERE',
     '-password': 'DB_PASSWORD_HERE',
     '-hostValidation': 0,
+    '-apmServiceName': 'APM_SERVICE_HERE',
+    '-apmServerUrl': 'APM_SERVER_URL_HERE',
+    '-apmSecretToken': 'APM_SECRET_TOKEN_HERE',
+    '-logsDir': 'LOGS_DIR_HERE',
+    '-logsFileName': 'LOGS_FILE_NAME_HERE',
   },
+
+  defaultLogDir: './logs',
+  defaultLogFileName: 'log.txt',
 
   // After commit file name
   afterCommitFile: '.envs.ac.json',
