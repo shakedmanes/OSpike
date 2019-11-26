@@ -1,12 +1,19 @@
 // client.validator
 
-import { refValidator, uniqueValidator } from '../generic/generic.validator';
+import { refValidator } from '../generic/generic.validator';
 import { collectionName, IClient } from './client.interface';
-import { URL } from 'url';
+import { propertyOf } from '../utils/objectUtils';
 
 // Client reference validator
 export const clientRefValidator = [
   refValidator.bind({}, collectionName, '_id'),
+  `Reference Error - ${collectionName} {VALUE} does not exist`,
+];
+
+// Client reference validator by audience id
+
+export const clientRefValidatorByAudId = [
+  refValidator.bind({}, collectionName, propertyOf<IClient>('audienceId')),
   `Reference Error - ${collectionName} {VALUE} does not exist`,
 ];
 
