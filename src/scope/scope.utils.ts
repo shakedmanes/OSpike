@@ -7,6 +7,7 @@ import { IClient } from '../client/client.interface';
 
 export class ScopeUtils {
 
+  // UNSAFE
   static async transformRawScopesToModels(scopes: string[], audienceId: string) {
 
     // Will contains all the models for the requested scopes
@@ -27,23 +28,20 @@ export class ScopeUtils {
   }
 
   /**
-   * Transforms and filters client scopes models ids to raw scopes
-   * for the specific audience which he requested
+   * Easy utility for transforming scope models to raw scopes
+   * @param scopesModels - array of scope models to get as raw scopes
+   */
+  static transformScopeModelsToRawScopes(scopesModels: IScope[]) {
+    return scopesModels.map(scope => scope.value);
+  }
+
+  /**
+   * Getting all the scopes models permitted to specific client by audienceId
    * @param client - client model for getting scopes from
    * @param audienceId - the audience id the client requested scopes from
    */
-  static async transformScopesModelsToRawScopes(client: IClient, audienceId: string) {
+  static async getAllScopesForClientAndAudience(client: IClient, audienceId: string) {
 
-    const rawScopes = [];
-
-    const populatedScopes = (await client.populate('scopes')).scopes as IScope[];
-
-    for (const currScopeModel of populatedScopes) {
-      if (currScopeModel.audienceId === audienceId) {
-        rawScopes.push(currScopeModel.value);
-      }
-    }
-
-    return rawScopes;
+    return await scopeModel.find({ audienceId, permittedClients: client._id }) as IScope[];
   }
 }

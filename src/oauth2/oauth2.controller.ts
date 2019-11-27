@@ -21,6 +21,7 @@ import { isScopeEquals } from '../utils/isEqual';
 import config from '../config';
 import { BadRequest } from '../utils/error';
 import { LOG_LEVEL, log, parseLogData } from '../utils/logger';
+import { ScopeUtils } from '../scope/scope.utils';
 
 // Error messages
 export const errorMessages = {
@@ -333,18 +334,25 @@ server.exchange(oauth2orize.exchange.clientCredentials(
     }
 
     try {
+
+      // Getting all permitted scopes for client by audienceId
+      const permittedScopesForClient =
+        await ScopeUtils.getAllScopesForClientAndAudience(client, body.audience);
+
       // Change scopes values when working on scopes feature
       const accessToken = await new accessTokenModel({
         value: OAuth2Utils.createJWTAccessToken({
           aud: body.audience,
           sub: client._id,
-          scope: client.scopes, // Change this to body.scope
+          // scope: client.scopes, // Change this to body.scope
+          scope: ScopeUtils.transformScopeModelsToRawScopes(permittedScopesForClient),
           clientId: client.id,
         }),
         clientId: client._id,
         audience: body.audience,
         grantType: 'client_credentials',
-        scopes: client.scopes, // Change this to body.scope
+        // scopes: client.scopes, // Change this to body.scope
+        scopes: permittedScopesForClient,
       }).save();
 
       // As said in OAuth2 RFC in https://tools.ietf.org/html/rfc6749#section-4.4.3

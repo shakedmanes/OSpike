@@ -18,7 +18,7 @@ const scopeSchema = new Schema(
       validate: clientRefValidatorByAudId as any,
     },
     permittedClients: {
-      type: [{ type: String, ref: ClientModelName, validate: clientRefValidator }],
+      type: [{ type: Schema.Types.ObjectId, ref: ClientModelName, validate: clientRefValidator }],
       required: true,
       default: [],
     },

@@ -4,7 +4,6 @@ import { Schema, model } from 'mongoose';
 import { URL } from 'url';
 import { IClient, collectionName } from './client.interface';
 import { hostUrisRegexValidator, redirectUrisValidator } from './client.validator';
-import { collectionName as ScopeModelName } from '../scope/scope.interface';
 import { scopeRefValidator } from '../scope/scope.validator';
 import { InvalidRedirectUri, InvalidHostUri } from './client.error';
 
@@ -36,15 +35,14 @@ const clientSchema = new Schema({
     required: true,
     validate: redirectUrisValidator,
   },
+  scopes: {
+    type: [String],
+  },
   hostUris: {
     type: [String],
     unique: true,
     required: true,
     validate: hostUrisRegexValidator,
-  },
-  scopes: {
-    type: [{ type: String, ref: ScopeModelName, validate: scopeRefValidator }],
-    required: true,
   },
   registrationToken: {
     type: String,

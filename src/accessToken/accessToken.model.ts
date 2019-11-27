@@ -49,7 +49,7 @@ const accessTokenSchema = new Schema(
       required: true,
     },
     scopes: {
-      type: [{ type: String, ref: ScopeModelName, validate: scopeRefValidator }],
+      type: [{ type: Schema.Types.ObjectId, ref: ScopeModelName, validate: scopeRefValidator }],
       required: true,
     },
     grantType: {
