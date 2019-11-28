@@ -4,8 +4,10 @@ import { Schema, model } from 'mongoose';
 import { URL } from 'url';
 import { IClient, collectionName } from './client.interface';
 import { hostUrisRegexValidator, redirectUrisValidator } from './client.validator';
+import { scopeRefValidator } from '../scope/scope.validator';
 import { InvalidRedirectUri, InvalidHostUri } from './client.error';
 
+// TODO: Need to change 'scopes' to virtual field for better handling of scopes management
 const clientSchema = new Schema({
   name: {
     type: String,
@@ -33,15 +35,14 @@ const clientSchema = new Schema({
     required: true,
     validate: redirectUrisValidator,
   },
+  scopes: {
+    type: [String],
+  },
   hostUris: {
     type: [String],
     unique: true,
     required: true,
     validate: hostUrisRegexValidator,
-  },
-  scopes: {
-    type: [String],
-    default: [],
   },
   registrationToken: {
     type: String,

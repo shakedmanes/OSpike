@@ -3,11 +3,13 @@
 import { Schema, model } from 'mongoose';
 import { collectionName as ClientModelName } from '../client/client.interface';
 import { collectionName as UserModelName } from '../user/user.interface';
+import { collectionName as ScopeModelName } from '../scope/scope.interface';
 import { IAccessToken, collectionName } from './accessToken.interface';
 import { clientRefValidator } from '../client/client.validator';
 import { userRefValidator } from '../user/user.validator';
 import config from '../config';
 import { AccessTokenLimitExceeded } from './accessToken.error';
+import { scopeRefValidator } from '../scope/scope.validator';
 
 // TODO: Define scope model and scope types
 // TODO: Define specific grant types available for token
@@ -47,7 +49,7 @@ const accessTokenSchema = new Schema(
       required: true,
     },
     scopes: {
-      type: [String],
+      type: [{ type: Schema.Types.ObjectId, ref: ScopeModelName, validate: scopeRefValidator }],
       required: true,
     },
     grantType: {
