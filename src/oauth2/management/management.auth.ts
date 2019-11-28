@@ -6,6 +6,7 @@ import accessTokenModel from '../../accessToken/accessToken.model';
 import clientModel from '../../client/client.model';
 import { IClient } from '../../client/client.interface';
 import config from '../../config';
+import { ScopeUtils } from '../../scope/scope.utils';
 import { LOG_LEVEL, log, parseLogData } from '../../utils/logger';
 
 // TODO: Return somehow the message of the failure
@@ -62,12 +63,16 @@ export class ClientManagementAuthenticationStrategy
 
     // Checking the client manager token
     const accessTokenDoc =
-      await accessTokenModel.findOne({ value: clientManagerToken }).populate('clientId').lean();
+      await accessTokenModel.findOne({ value: clientManagerToken })
+                            .populate('clientId scopes')
+                            .lean();
 
     // Check if the client have special scope for managing clients and the requests
     // have been done from the correct host
     if (accessTokenDoc &&
-        accessTokenDoc.scopes.indexOf(config.CLIENT_MANAGER_SCOPE) > -1) {
+        // accessTokenDoc.scopes.indexOf(config.CLIENT_MANAGER_SCOPE) > -1) {
+        ScopeUtils.transformScopeModelsToRawScopes(accessTokenDoc.scopes)
+                  .indexOf(config.CLIENT_MANAGER_SCOPE) > -1) {
 
       // If registration token is needed for authentication
       if (this.includeRegistrationToken) {
