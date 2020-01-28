@@ -11,6 +11,7 @@ import { default as session } from 'express-session';
 import { default as oauthRouter } from './oauth2/oauth2.routes';
 import { default as wellKnownRouter } from './certs/certs.routes';
 import { errorHandler } from './utils/error.handler';
+import { log, parseLogData, LOG_LEVEL } from './utils/logger';
 import config from './config';
 
 const app = express();
@@ -52,5 +53,20 @@ app.use(errorHandler);
 
 // Health check for Load Balancer
 app.get('/health', (req, res) => res.send('alive'));
+
+// Handling all unknown route request with 404
+app.all('*', (req, res) => {
+  log(
+    LOG_LEVEL.INFO,
+    parseLogData(
+      'Unknown Route Request',
+      `Received from ${req.headers['x-forwarded-for']}, Operation - ${req.method}. ${'\r\n'
+      }Route Name: ${req.originalUrl}`,
+      404,
+      null,
+    ),
+  );
+  res.status(404).send({ message: `Page not found` });
+});
 
 export default app;
