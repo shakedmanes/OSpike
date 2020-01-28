@@ -22,6 +22,7 @@ import config from '../config';
 import { BadRequest } from '../utils/error';
 import { LOG_LEVEL, log, parseLogData } from '../utils/logger';
 import { ScopeUtils } from '../scope/scope.utils';
+import { Wrapper } from '../utils/wrapper';
 
 // Error messages
 export const errorMessages = {
@@ -558,7 +559,16 @@ export const decisionEndpoint = [
  * authenticate when making requests to this endpoint.
  */
 export const tokenEndpoint = [
-  passport.authenticate(['basic', 'oauth2-client-password'], { session: false }),
+  function (req: Request, res: Response, next: NextFunction) {
+    const passportCallback = Wrapper.wrapPassportCallback(req, res, next);
+    return (
+      passport.authenticate(
+        ['basic', 'oauth2-client-password'],
+        { session: false },
+        passportCallback,
+      )(req, res, next)
+    );
+  },
   server.token(),
 ];
 
@@ -570,7 +580,16 @@ export const tokenEndpoint = [
  * more information in @see https://tools.ietf.org/html/rfc7662
  */
 export const tokenIntrospectionEndpoint = [
-  passport.authenticate(['basic', 'oauth2-client-password'], { session: false }),
+  function (req: Request, res: Response, next: NextFunction) {
+    const passportCallback = Wrapper.wrapPassportCallback(req, res, next);
+    return (
+      passport.authenticate(
+        ['basic', 'oauth2-client-password'],
+        { session: false },
+        passportCallback,
+      )(req, res, next)
+    );
+  },
   async (req: Request, res: Response, next: NextFunction) => {
     const token = req.body.token;
 
