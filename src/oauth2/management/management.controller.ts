@@ -139,11 +139,12 @@ export class ManagementController {
     }
 
     // Removing all associated access tokens and auth codes for the client
+    
     await accessTokenModel.remove({ clientId: clientDoc._id });
     await authCodeModel.remove({ clientId: clientDoc._id });
 
-    // Generate new client id and client secret
-    clientDoc.id = clientIdValueGenerator();
+    // Generate new client secret
+    clientDoc.id = clientId
     clientDoc.secret = clientSecretValueGenerator();
     await clientDoc.save();
 
