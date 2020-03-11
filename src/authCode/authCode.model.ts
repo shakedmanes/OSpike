@@ -5,8 +5,10 @@ import {
   IClient,
   collectionName as ClientModelName,
 } from '../client/client.interface';
-import { collectionName as UserModelName } from '../user/user.interface';
 import { IAuthCode, collectionName } from './authCode.interface';
+import { collectionName as ScopeModelName } from '../scope/scope.interface';
+import { scopeRefValidator } from '../scope/scope.validator';
+
 import config from '../config';
 
 const authCodeSchema = new Schema({
@@ -22,7 +24,6 @@ const authCodeSchema = new Schema({
   },
   userId: {
     type: String,
-    ref: UserModelName,
     required: true,
   },
   audience: {
@@ -34,7 +35,7 @@ const authCodeSchema = new Schema({
     required: true,
   },
   scopes: {
-    type: [String],
+    type: [{ type: Schema.Types.ObjectId, ref: ScopeModelName, validate: scopeRefValidator }],
     required: true,
   },
   expireAt: {

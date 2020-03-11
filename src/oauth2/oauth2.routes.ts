@@ -5,8 +5,8 @@ import {
   authorizationEndpoint,
   tokenEndpoint,
   decisionEndpoint,
-  loginForm,
-  loginMethod,
+//  loginForm,
+//  loginMethod,
   tokenIntrospectionEndpoint,
 } from './oauth2.controller';
 import { setManagementRoutes } from './management/management.routes';
@@ -20,8 +20,8 @@ router.post('/tokeninfo', tokenIntrospectionEndpoint);
 router.post('/decision', decisionEndpoint);
 
 // Authentication routes
-router.get('/login', loginForm);
-router.post('/login', loginMethod);
+// router.get('/login', loginForm);
+// router.post('/login', loginMethod);
 
 // Management routes
 setManagementRoutes(router);

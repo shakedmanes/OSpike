@@ -1,38 +1,24 @@
 // passport_config
 
 import passport from 'passport';
-import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as BearerStrategy } from 'passport-http-bearer';
 import { Strategy as ClientPasswordStrategy } from 'passport-oauth2-client-password';
+const shragaStrategy = require('passport-shraga').Strategy;
 import { BasicStrategy } from 'passport-http';
 import { Request } from 'express';
-
 import { ClientManagementAuthenticationStrategy } from './oauth2/management/management.auth';
-import userModel from './user/user.model';
-import { IUser } from './user/user.interface';
 import clientModel from './client/client.model';
 import accessTokenModel from './accessToken/accessToken.model';
 import config from './config';
-import { validatePasswordHash } from './utils/hashUtils';
 import { ipInHostnames } from './utils/hostnameUtils';
 
-/**
- * Local Strategy
- *
- * Used for authenticate end-users by email and password credentials.
- */
-passport.use(new LocalStrategy(
+passport.use(new shragaStrategy(
   {
-    usernameField: 'email',
-    passwordField: 'password',
+    // callbackURL: config.SHRAGA_CALLBACK_ENDPOINT,
+    shragaURL: process.env.SHRAGA_URL,
   },
-  async (email, password, callback) => {
-    const user = await userModel.findOne({ email });
-
-    if (user && validatePasswordHash(password, user.password)) {
-      return callback(null, user, { message: 'Logged In Successfully' });
-    }
-    return callback(null, false, { message: 'Incorrect email or password.' });
+  (profile: any, done: any) => {
+    done(null, profile);
   },
 ));
 
@@ -132,10 +118,11 @@ passport.use(
 // simple matter of serializing the user's ID, and deserializing by finding
 // the user by ID from the database.
 
-passport.serializeUser((user: IUser, done) => {
-  done(null, user._id);
+// TODO: Create type for user object
+passport.serializeUser((user: any, done) => {
+  done(null, user);
 });
 
-passport.deserializeUser(async (id, done) => {
-  done(null, await userModel.findOne({ _id: id }) || undefined);
+passport.deserializeUser((user, done) => {
+  done(null, user);
 });

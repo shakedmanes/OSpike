@@ -1,8 +1,9 @@
 // app
 
 import * as bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser';
 import passport from 'passport';
-import express from 'express';
+import express, { NextFunction } from 'express';
 import morgan from 'morgan';
 import path from 'path';
 import './passport_config'; // Setting up all passport middlewares
@@ -13,6 +14,7 @@ import { default as wellKnownRouter } from './certs/certs.routes';
 import { errorHandler } from './utils/error.handler';
 import { log, parseLogData, LOG_LEVEL } from './utils/logger';
 import config from './config';
+import { writeFileSync } from 'fs';
 
 const app = express();
 
@@ -27,6 +29,7 @@ app.set('views', path.join(__dirname, '/views'));
 app.set('port', process.env.PORT);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(morgan(morganFormatting[process.env.NODE_ENV || 'dev']));
 
 // Use express session support since OAuth2orize requires it
@@ -53,6 +56,17 @@ app.use(errorHandler);
 
 // Health check for Load Balancer
 app.get('/health', (req, res) => res.send('alive'));
+
+app.get('/auth/shraga', passport.authenticate('shraga'));
+app.post(
+  '/auth/callback',
+  passport.authenticate('shraga'),
+  (req: any, res: any, next: NextFunction) => {
+    res.redirect(
+      `/oauth2/authorize?${Buffer.from(req.user.RelayState, 'base64').toString('utf8')}`,
+    );
+  },
+);
 
 // Handling all unknown route request with 404
 app.all('*', (req, res) => {
