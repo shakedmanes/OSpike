@@ -13,13 +13,13 @@ const userPermissionSchema = new Schema({
     required: true,
   },
   clientId: {
-    type: String,
+    type: Schema.Types.ObjectId,
     ref: ClientModelName,
     required: true,
     validate: clientRefValidator as any,
   },
   scopeId: {
-    type: String,
+    type: Schema.Types.ObjectId,
     ref: ScopeModelName,
     required: true,
     validate: scopeRefValidator as any,

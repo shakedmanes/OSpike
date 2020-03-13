@@ -25,6 +25,9 @@ const morganFormatting: any = { prod: 'common', dev: 'dev', test: 'tiny' };
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '/views'));
 
+// Static files middleware
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
 // Middlewares
 app.set('port', process.env.PORT);
 app.use(bodyParser.json());

@@ -57,16 +57,16 @@ export class ScopeUtils {
   /**
    * Checking sufficient scopes requested by the client.
    * Returns boolean indicates if requested scopes by the client are permitted.
-   * @param client - client model which requesting permission to the scopes
+   * @param clientId - object id of the client which requesting permission to the scopes
    * @param audienceId - the audience id the client requested scopes from
    * @param scopes - scopes requested by the client
    */
-  static async checkSufficientScopes(client: IClient, audienceId: string, scopes: string[]) {
+  static async checkSufficientScopes(clientId: string, audienceId: string, scopes: string[]) {
     return (
       (await scopeModel.find({
         audienceId,
         value: { $in: scopes },
-        permittedClients: client._id,
+        permittedClients: clientId,
       })).length === scopes.length
     );
   }
@@ -75,7 +75,7 @@ export class ScopeUtils {
    * Checking if the user already approve the requested scopes by the client.
    * Returns boolean indicates if requested scopes by the client are already permitted by the user.
    * @param userId - The user id
-   * @param clientId - The client id
+   * @param clientId - The client object id
    * @param audienceId - The audience id
    * @param scopes - The scopes the client requested
    */
@@ -114,5 +114,23 @@ export class ScopeUtils {
         },
       ])).length === scopes.length
     );
+  }
+
+  /**
+   * Store in db the user approvement in userPermission model
+   * @param userId - User id
+   * @param clientId - Client id of the client which requested the scopes
+   * @param scopes - Scopes object ids
+   */
+  static async saveUserApprovement(userId: string,
+                                   clientId: string,
+                                   scopesIds: string[]) {
+    for (const scopeId of scopesIds) {
+      await userPermissionModel.update(
+        { userId, clientId, scopeId },
+        { userId, clientId, scopeId },
+        { upsert: true },
+      );
+    }
   }
 }

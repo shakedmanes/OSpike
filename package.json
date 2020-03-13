@@ -17,7 +17,7 @@
     "tslint-config": "tslint -c tslint.json -p tsconfig.json",
     "copy-files": "node ./scripts/copy_files.js",
     "generate-certs": "node ./scripts/generate_certs.js",
-    "generate-env-dev": "node ./scripts/generate_env.js -env dev -port 1337 -hostname localhost -mongoUrl MONGO_URL_HERE -username DB_USERNAME_HERE -password DB_PASSWORD_HERE -hostValidation 0 -logsDir LOGS_DIR_HERE -logsFileName LOGS_FILE_NAME_HERE -shragaUrl SHRAGA_URL_HERE",
+    "generate-env-dev": "node ./scripts/generate_env.js -env dev -port 1337 -hostname localhost -mongoUrl MONGO_URL_HERE -username DB_USERNAME_HERE -password DB_PASSWORD_HERE -hostValidation 0 -logsDir LOGS_DIR_HERE -logsFileName LOGS_FILE_NAME_HERE -shragaUrl SHRAGA_URL_HERE ",
     "generate-env-test": "node ./scripts/generate_env.js -env test -port 1337 -hostname localhost -mongoUrl MONGO_URL_HERE -username DB_USERNAME_HERE -password DB_PASSWORD_HERE -hostValidation 0 -logsDir LOGS_DIR_HERE -logsFileName LOGS_FILE_NAME_HERE -shragaUrl SHRAGA_URL_HERE",
     "generate-env-prod": "node ./scripts/generate_env.js -env prod -port 1337 -hostname 0.0.0.0 -mongoUrl MONGO_URL_HERE -username DB_USERNAME_HERE -password DB_PASSWORD_HERE -hostValidation 0 -apmServiceName APM_SERVICE_HERE -apmServerUrl APM_SERVER_URL_HERE -apmSecretToken APM_SECRET_TOKEN_HERE -logsDir LOGS_DIR_HERE -logsFileName LOGS_FILE_NAME_HERE -shragaUrl SHRAGA_URL_HERE",
     "generate-jwks": "node ./scripts/generate_jwks.js",

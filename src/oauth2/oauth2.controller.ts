@@ -89,7 +89,7 @@ server.grant(oauth2orize.grant.code(
         value: authCodeValueGenerator(),
         clientId: client._id,
         userId: user.id,
-        scopes: await ScopeUtils.transformRawScopesToModels(ares.scope, ares.audience),
+        scopes: ares.scope.map((scope: IScope) => scope._id),
         audience: ares.audience,
       }).save();
 
@@ -98,9 +98,9 @@ server.grant(oauth2orize.grant.code(
         parseLogData(
           'OAuth2 Flows',
           `Flow: Authorization Code ${'\r\n'
-           }Results: Generated authorization code for the following properties.\r\n
-           clientId: ${client.id}\r\nuserId: ${user.id}\r\n\audience: ${ares.audience
-          }\r\nscopes: ${ares.scope}\r\nvalue: ${authCode.value}`,
+          }Results: Generated authorization code for the following properties.${'\r\n'
+          }clientId: ${client.id}, userId: ${user.id}, audience: ${ares.audience
+          }, scopes: ${ares.scope.map((scope: IScope) => scope._id)}, value: ${authCode.value}`,
           200,
           null,
         ),
@@ -131,13 +131,13 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
       value: OAuth2Utils.createJWTAccessToken({
         aud: ares.audience,
         sub: user.id,
-        scope: ares.scope,
+        scope: ScopeUtils.transformScopeModelsToRawScopes(ares.scope),
         clientId: client.id,
       }),
       clientId: client._id,
       userId: user.id,
       audience: ares.audience,
-      scopes: await ScopeUtils.transformRawScopesToModels(ares.scope, ares.audience),
+      scopes: ares.scope.map((scope: IScope) => scope._id),
       grantType: 'token',
     }).save();
 
@@ -146,7 +146,7 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
       parseLogData(
         'OAuth2 Flows',
         `Flow: Implicit \r\nResults: Generated token for the following properties.${'\r\n'
-         }audience: ${accessToken.audience}`,
+        }JWT Contents: ${JSON.stringify(OAuth2Utils.stripJWTAccessToken(accessToken.value))}`,
         200,
         null,
       ),
@@ -542,23 +542,23 @@ export const authorizationEndpoint = [
     // Check if grant request in correct form and qualifies for immediate approval
     async (oauth2, done) => {
 
-      // Checking if token already genereated for the user and the client
-      const accessToken =
-      await accessTokenModel.findOne({
-        clientId: oauth2.client._id,
-        userId: oauth2.user.id,
-        audienceId: oauth2.locals.audience,
-      }).lean();
+      // // Checking if token already genereated for the user and the client
+      // const accessToken =
+      // await accessTokenModel.findOne({
+      //   clientId: oauth2.client._id,
+      //   userId: oauth2.user.id,
+      //   audienceId: oauth2.locals.audience,
+      // }).lean();
 
       // User already have token in the client with requested scopes
       // TODO: Consider if the client requests for other scope, ask the user if he wants
       //       To drop the access token that the client have and create a new one with
       //       The requested scopes.
-      if (accessToken && isScopeEquals(accessToken.scopes, oauth2.scope)) {
-        return (
-          done(null, true, { audience: oauth2.locals.audience, scope: oauth2.req.scope }, null)
-        );
-      }
+      // if (accessToken && isScopeEquals(accessToken.scopes, oauth2.scope)) {
+      //   return (
+      //     done(null, true, { audience: oauth2.locals.audience, scope: oauth2.req.scope }, null)
+      //   );
+      // }
 
       // TODO: Maybe consider refactor the scopes validation in one function for both client
       //       and user, also in one big mongodb query (which will eventually more efficient)
@@ -566,23 +566,27 @@ export const authorizationEndpoint = [
       // Otherwise, the client requested new/different scopes (or maybe new token) behalf
       // the user, so we need to check if the client have permission for the scopes he requested
       if (await ScopeUtils.checkSufficientScopes(
-            oauth2.client, oauth2.locals.audience, oauth2.req.scope,
+            oauth2.client._id, oauth2.locals.audience, oauth2.req.scope,
           )) {
+
+        // Get the scopes models from the db to pass on request
+        const requestedScopes =
+         await ScopeUtils.transformRawScopesToModels(oauth2.req.scope, oauth2.locals.audience);
 
         // The client have the requested scopes, need to check if the user already approve them once
         // Or we need to show him the consent (forward him to user decision route for approving
         // the scopes requested by the client)
         if (await ScopeUtils.checkUserApprovement(
-              oauth2.user.id, oauth2.client.id, oauth2.locals.audience, oauth2.req.scope,
+              oauth2.user.id, oauth2.client._id, oauth2.locals.audience, oauth2.req.scope,
             )) {
           return (
-            done(null, true, { audience: oauth2.locals.audience, scope: oauth2.req.scope }, null)
+            done(null, true, { audience: oauth2.locals.audience, scope: requestedScopes }, null)
           );
         }
 
         // Let the user decide
         return (
-          done(null, false, { audience: oauth2.locals.audience, scope: oauth2.req.scope }, null)
+          done(null, false, { audience: oauth2.locals.audience, scope: requestedScopes }, null)
         );
       }
 
@@ -609,6 +613,8 @@ export const authorizationEndpoint = [
       transactionID: req.oauth2.transactionID,
       user: req.user,
       client: req.oauth2.client,
+      audience: req.oauth2.info.audience,
+      scopes: req.oauth2.info.scope,
     });
   },
 ];
@@ -623,7 +629,18 @@ export const authorizationEndpoint = [
  */
 export const decisionEndpoint = [
   ensureLoggedInMiddleware,
-  server.decision((req, done) => {
+  server.decision(async (req, done) => {
+
+    // Checks if the decision ends up with approvement.
+    // if so, we need to save that for future requests (remember the user choice)
+    if ((<any>req).body && !(<any>req).body.cancel && req.oauth2) {
+      await ScopeUtils.saveUserApprovement(
+        req.user.id,
+        req.oauth2.client._id,
+        (<IScope[]><unknown>req.oauth2.info.scope).map((scope: IScope) => scope._id),
+      );
+    }
+
     // Pass the request information to the authorization grant middleware
     return done(null, req.oauth2 ? req.oauth2.info : {});
   }),

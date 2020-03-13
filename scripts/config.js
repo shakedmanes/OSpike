@@ -6,6 +6,7 @@ const config = {
   copyPath: [
     { src: './src/certs/files' ,dest: './dist/certs' },
     { src: './src/views' , dest: './dist' },
+    { src: './src/assets', dest: './dist'}
   ],
 
   // OpenSSL and Certificates configurations
