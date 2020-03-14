@@ -12,9 +12,15 @@ import accessTokenModel from './accessToken/accessToken.model';
 import config from './config';
 import { ipInHostnames } from './utils/hostnameUtils';
 
+/**
+ * Shraga authentication strategy
+ *
+ * Used to authenticate end-users to ADFS server by using
+ * shraga proxy instead implement ADFS authentication flow
+ */
 passport.use(new shragaStrategy(
   {
-    // callbackURL: config.SHRAGA_CALLBACK_ENDPOINT,
+    callbackURL: `${config.AUTH_ENDPOINT}${config.AUTH_SHRAGA_CALLBACK_ENDPOINT}`,
     shragaURL: process.env.SHRAGA_URL,
   },
   (profile: any, done: any) => {

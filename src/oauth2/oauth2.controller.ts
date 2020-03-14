@@ -8,6 +8,7 @@ import {
   refreshTokenValueGenerator,
 } from '../utils/valueGenerator';
 import { OAuth2Utils } from './oauth2.utils';
+import { ensureAuthenticatedMiddleware } from '../auth/auth.utils';
 import authCodeModel from '../authCode/authCode.model';
 import accessTokenModel from '../accessToken/accessToken.model';
 import { IAccessToken } from '../accessToken/accessToken.interface';
@@ -15,14 +16,12 @@ import refreshTokenModel from '../refreshToken/refreshToken.model';
 import clientModel from '../client/client.model';
 import { IClient } from '../client/client.interface';
 import { IScope } from '../scope/scope.interface';
-import { isScopeEquals } from '../utils/isEqual';
 import config from '../config';
 import { BadRequest } from '../utils/error';
 import { InsufficientScopes } from './oauth2.error';
 import { LOG_LEVEL, log, parseLogData } from '../utils/logger';
 import { ScopeUtils } from '../scope/scope.utils';
 import { Wrapper } from '../utils/wrapper';
-import url from 'url';
 
 // Error messages
 export const errorMessages = {
@@ -34,21 +33,19 @@ export const errorMessages = {
 
 // TODO: create specified config files with grants types
 // TODO: create generated session key for each of the requests
-// TODO: refactor ensureLoggedIn binding
 const server = oauth2orize.createServer();
 
 // Binds the route for login in ensure logged in middleware
 const loginUri = '/oauth2/login';
-// const ensureLoggedInMiddleware = ensureLoggedIn.bind({}, loginUri);
-const ensureLoggedInMiddleware =
-(req: Request, res: Response, next: NextFunction) => {
-  if (!req.user) {
-    const relayState = Buffer.from(url.parse(req.url).query as string).toString('base64');
-    res.redirect(`/auth/shraga/?RelayState=${relayState}`);
-  } else {
-    next();
-  }
-};
+// const ensureLoggedInMiddleware =
+// (req: Request, res: Response, next: NextFunction) => {
+//   if (!req.user) {
+//     const relayState = Buffer.from(req.url).toString('base64');
+//     res.redirect(`/auth/shraga/?RelayState=${relayState}`);
+//   } else {
+//     next();
+//   }
+// };
 
 /**
  * ############ FOR FUTURE VERSIONS ############
@@ -69,19 +66,6 @@ const ensureLoggedInMiddleware =
  */
 server.grant(oauth2orize.grant.code(
   async (client, redirectUri, user, ares, done) => {
-
-    // // Check if there's token already for the user and client for the audience,
-    // // therfore avoid generating code
-    // const token = await accessTokenModel.findOne({
-    //   clientId: client._id,
-    //   userId: user._id,
-    //   audience: ares.audience,
-    // });
-
-    // if (token) {
-    //   return done(new BadRequest('There\'s already access token for that \
-    //                               client and user for that audience.'));
-    // }
 
     try {
       const authCode = await new authCodeModel({
@@ -123,6 +107,7 @@ server.grant(oauth2orize.grant.code(
  * which is bound to these values.
  */
 server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
+
   // In authorization endpoint, the redirect uri of the client got checked to ensure
   // The client is really who requesting the token.
 
@@ -492,7 +477,7 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
  * The authorization endpoint should implement the end user authentication.
  */
 export const authorizationEndpoint = [
-  ensureLoggedInMiddleware,
+  ensureAuthenticatedMiddleware,
   (req: Request, res: Response, next: NextFunction) => {
     // Checking if all the request parameters is given
 
@@ -602,13 +587,7 @@ export const authorizationEndpoint = [
   // TODO: Implement request handler for the user stage of allow authorization to requested scopes
   (req: any, res: Response, next: NextFunction) => {
 
-    // Put on the oauth2 request information object the audience
-    // if (!req.query.audience) {
-    //   throw new BadRequest(errorMessages.MISSING_AUDIENCE);
-    // }
-
-    // req.oauth2.info.audience = req.query.audience;
-
+    // Render decision page for user
     res.render('decision', {
       transactionID: req.oauth2.transactionID,
       user: req.user,
@@ -628,7 +607,7 @@ export const authorizationEndpoint = [
  * a response.
  */
 export const decisionEndpoint = [
-  ensureLoggedInMiddleware,
+  ensureAuthenticatedMiddleware,
   server.decision(async (req, done) => {
 
     // Checks if the decision ends up with approvement.

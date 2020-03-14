@@ -10,6 +10,7 @@ import './passport_config'; // Setting up all passport middlewares
 import './db_config'; // Create mongodb connections
 import { default as session } from 'express-session';
 import { default as oauthRouter } from './oauth2/oauth2.routes';
+import { default as authRouter } from './auth/auth.routes';
 import { default as wellKnownRouter } from './certs/certs.routes';
 import { errorHandler } from './utils/error.handler';
 import { log, parseLogData, LOG_LEVEL } from './utils/logger';
@@ -51,6 +52,9 @@ app.use(passport.session());
 // OAuth2 routes
 app.use(config.OAUTH_ENDPOINT, oauthRouter);
 
+// Authentication routes (Shraga)
+app.use(config.AUTH_ENDPOINT, authRouter);
+
 // Well known routes
 app.use(config.WELLKNOWN_ENDPOINT, wellKnownRouter);
 
@@ -59,17 +63,6 @@ app.use(errorHandler);
 
 // Health check for Load Balancer
 app.get('/health', (req, res) => res.send('alive'));
-
-app.get('/auth/shraga', passport.authenticate('shraga'));
-app.post(
-  '/auth/callback',
-  passport.authenticate('shraga'),
-  (req: any, res: any, next: NextFunction) => {
-    res.redirect(
-      `/oauth2/authorize?${Buffer.from(req.user.RelayState, 'base64').toString('utf8')}`,
-    );
-  },
-);
 
 // Handling all unknown route request with 404
 app.all('*', (req, res) => {

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Spike User Permission Management</title>
+
+    <!-- Favicon -->
+    <link rel='shortcut icon' type='image/x-icon' href='/assets/images/favicon.ico' />
+
+    <!-- Stylesheets -->
+    <link rel='stylesheet' href='/assets/stylesheets/permission-management.css'>
+
+    <!-- Material Design Lite -->
+    <link rel="stylesheet" href="/assets/stylesheets/material.min.css">
+    <script src="/assets/js/material.min.js"></script>
+    <link rel="stylesheet" href="/assets/stylesheets/material-icons.css">
+</head>
+
+<body>
+    <div class="card-container">
+        <form action="/oauth2/user-permissions" method="post">
+            <% for (let index = 0; index < userPermissions.length; index++) { %>
+            <div class="card-wide mdl-card mdl-shadow--2dp">
+                <div class="mdl-card__title">
+                    <h2 class="mdl-card__title-text"><%= userPermissions[index].audienceClientName %></h2>
+                </div>
+                <div class="mdl-card__supporting-text">
+                    <h7>The following applications have permissions to
+                        <b><%= userPermissions[index].audienceClientName %></b>:</h7>
+                    <ul class="list-icon mdl-list">
+                        <% for (let cIndex = 0; cIndex < userPermissions[index].clients.length; cIndex++) { %>
+                        <li class="mdl-list__item mdl-list__item--two-line">
+                            <span class="mdl-list__item-primary-content">
+                                <i class="material-icons mdl-list__item-avatar">security</i>
+                                <span><%= userPermissions[index].clients[cIndex].clientName %></span>
+                                <span class="mdl-list__item-sub-title"><%= userPermissions[index].clients[cIndex].numScopes %> Permissions</span>
+                            </span>
+                        </li>
+                        <% } %>
+                    </ul>
+                </div>
+                <div class="mdl-card__actions mdl-card--border">
+                    <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" target="_blank"
+                        href="/oauth2/user-permissions/<%= userPermissions[index].audienceId %>">
+                        Modify Permissions
+                    </a>
+                    <button class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" type="submit"
+                        name='deleteAudId' value='<%= userPermissions[index].audienceId %>'>
+                        Remove All Permissions
+                    </button>
+                </div>
+                <div class="mdl-card__menu">
+                    <a class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" target='_blank' href=''>
+                        <i class="material-icons">help</i>
+                    </a>
+                </div>
+            </div>
+            <% } %>
+        </form>
+    </div>
+</body>
+
+</html>

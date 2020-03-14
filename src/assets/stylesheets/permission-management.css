@@ -1,0 +1,21 @@
+.card-wide.mdl-card {
+    width: 350px;
+    margin: 0 8px 8px 0; /* Some gutter */
+}
+
+.card-wide>.mdl-card__title {
+    color: #fff;
+    height: 220px;
+    background: url('/assets/images/audience_background.jpg') center / cover;
+}
+
+.card-wide>.mdl-card__menu {
+    color: #fff;
+}
+
+.card-container { 
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;    
+    align-content: center;    
+}

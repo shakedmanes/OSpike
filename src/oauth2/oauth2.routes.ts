@@ -10,6 +10,9 @@ import {
   tokenIntrospectionEndpoint,
 } from './oauth2.controller';
 import { setManagementRoutes } from './management/management.routes';
+import {
+  setPermissionManagementRoutes,
+} from './permission-management/permission-management.routes';
 
 const router = Router();
 
@@ -25,5 +28,8 @@ router.post('/decision', decisionEndpoint);
 
 // Management routes
 setManagementRoutes(router);
+
+// User permission management routes
+setPermissionManagementRoutes(router);
 
 export default router;

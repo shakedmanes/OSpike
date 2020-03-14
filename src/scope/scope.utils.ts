@@ -1,11 +1,11 @@
 // scope.utils.ts
 
 import scopeModel from './scope.model';
-import userPermissionModel from '../userPermission/userPermission.model';
+import userPermissionModel from '../user-permission/user-permission.model';
 import { propertyOf } from '../utils/objectUtils';
 import { IScope, collectionName as ScopeModelName } from './scope.interface';
 import { IClient } from '../client/client.interface';
-import { IUserPermission } from '../userPermission/userPermission.interface';
+import { IUserPermission } from '../user-permission/user-permission.interface';
 
 export class ScopeUtils {
 
