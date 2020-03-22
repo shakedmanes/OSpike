@@ -40,7 +40,7 @@ const accessTokenSchema = new Schema(
     },
     value: {
       type: String,
-      unique: true,
+      // unique: true,
       required: true,
     },
     scopes: {

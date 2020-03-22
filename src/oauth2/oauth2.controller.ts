@@ -73,6 +73,7 @@ server.grant(oauth2orize.grant.code(
         value: authCodeValueGenerator(),
         clientId: client._id,
         userId: user.id,
+        userProperties: user,
         scopes: ares.scope.map((scope: IScope) => scope._id),
         audience: ares.audience,
       }).save();
@@ -113,12 +114,15 @@ server.grant(oauth2orize.grant.token(async (client, user, ares, done) => {
 
   try {
     const accessToken = await new accessTokenModel({
-      value: OAuth2Utils.createJWTAccessToken({
-        aud: ares.audience,
-        sub: user.id,
-        scope: ScopeUtils.transformScopeModelsToRawScopes(ares.scope),
-        clientId: client.id,
-      }),
+      value: OAuth2Utils.createJWTAccessToken(
+        {
+          aud: ares.audience,
+          sub: user.id,
+          scope: ScopeUtils.transformScopeModelsToRawScopes(ares.scope),
+          clientId: client.id,
+        },
+        user,
+      ),
       clientId: client._id,
       userId: user.id,
       audience: ares.audience,
@@ -166,12 +170,15 @@ server.exchange(oauth2orize.exchange.code(
 
         // Generate fresh access token
         const accessToken = await new accessTokenModel({
-          value: OAuth2Utils.createJWTAccessToken({
-            aud: authCode.audience,
-            sub: authCode.userId as string,
-            scope: ScopeUtils.transformScopeModelsToRawScopes(<IScope[]>authCode.scopes),
-            clientId: client.id,
-          }),
+          value: OAuth2Utils.createJWTAccessToken(
+            {
+              aud: authCode.audience,
+              sub: authCode.userId as string,
+              scope: ScopeUtils.transformScopeModelsToRawScopes(<IScope[]>authCode.scopes),
+              clientId: client.id,
+            },
+            authCode.userProperties,
+          ),
           clientId: (<IClient>authCode.clientId)._id,
           userId: authCode.userId,
           audience: authCode.audience,
@@ -183,6 +190,7 @@ server.exchange(oauth2orize.exchange.code(
         const refreshToken = await new refreshTokenModel({
           value: refreshTokenValueGenerator(),
           accessTokenId: accessToken._id,
+          userProperties: authCode.userProperties,
         }).save();
 
         const additionalParams = {
@@ -415,14 +423,17 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
       await refreshTokenDoc.remove();
 
       const accessToken = await new accessTokenModel({
-        value: OAuth2Utils.createJWTAccessToken({
-          aud: (<IAccessToken>refreshTokenDoc.accessTokenId).audience,
-          sub: (<IAccessToken>refreshTokenDoc.accessTokenId).userId as string,
-          scope: ScopeUtils.transformScopeModelsToRawScopes(
-            <IScope[]>(<IAccessToken>refreshTokenDoc.accessTokenId).scopes,
-          ),
-          clientId: (<IClient>(<IAccessToken>refreshTokenDoc.accessTokenId).clientId).id,
-        }),
+        value: OAuth2Utils.createJWTAccessToken(
+          {
+            aud: (<IAccessToken>refreshTokenDoc.accessTokenId).audience,
+            sub: (<IAccessToken>refreshTokenDoc.accessTokenId).userId as string,
+            scope: ScopeUtils.transformScopeModelsToRawScopes(
+              <IScope[]>(<IAccessToken>refreshTokenDoc.accessTokenId).scopes,
+            ),
+            clientId: (<IClient>(<IAccessToken>refreshTokenDoc.accessTokenId).clientId).id,
+          },
+          refreshTokenDoc.userProperties,
+        ),
         clientId: (<IClient>(<IAccessToken>refreshTokenDoc.accessTokenId).clientId)._id,
         userId: (<IAccessToken>refreshTokenDoc.accessTokenId).userId,
         audience: (<IAccessToken>refreshTokenDoc.accessTokenId).audience,
@@ -433,6 +444,7 @@ server.exchange(oauth2orize.exchange.refreshToken(async (client, refreshToken, s
       const newRefreshToken = await new refreshTokenModel({
         value: refreshTokenValueGenerator(),
         accessTokenId: accessToken._id,
+        userProperties: refreshTokenDoc.userProperties,
       }).save();
 
       // Should consider security-wise returning a new refresh token with the response.

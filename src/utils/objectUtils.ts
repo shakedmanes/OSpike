@@ -97,3 +97,20 @@ export function* generateObjectSubsets(fullObj: any): IterableIterator<any> {
     }
   }
 }
+
+/**
+ * Returns object without the specified keys (More efficient than delete command)
+ * @param obj - Object to use on
+ * @param keys - Keys to exclude from the object
+ */
+export const objWithoutKeys = (obj: any, keys: string[]) => {
+  const newObj: any = {};
+
+  for (const key in obj) {
+    if (keys.indexOf(key) === -1) {
+      newObj[key] = obj[key];
+    }
+  }
+
+  return newObj;
+};

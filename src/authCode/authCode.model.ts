@@ -26,6 +26,10 @@ const authCodeSchema = new Schema({
     type: String,
     required: true,
   },
+  userProperties: {
+    type: Object,
+    required: true,
+  },
   audience: {
     type: String,
     required: true,
