@@ -2,50 +2,89 @@
 <html>
 
 <head>
-  <title>OAuth2Orize Recipes Decision</title>
-  <!-- Needed for mobile sites to work -->
-  <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
+  <title>Spike User Consent Decision</title>
+  <!-- Favicon -->
+  <link rel='shortcut icon' type='image/x-icon' href='/assets/images/favicon.ico' />
 
-  <!-- Style sheets -->
-  <!-- <link rel="stylesheet" type="text/css" href="../stylesheets/pure-min.css"> -->
-  <!-- <link rel="stylesheet" type="text/css" href="../stylesheets/base.css"> -->
-  <!-- <link rel="stylesheet" type="text/css" href="../stylesheets/dialog-modules.css">  -->
+  <!-- Stylesheets -->
+  <link rel='stylesheet' href='/assets/stylesheets/decision.css'>
+
+  <!-- Material Design Lite -->
+  <link rel="stylesheet" href="/assets/stylesheets/material.min.css">
+  <script src="/assets/js/material.min.js"></script>
+  <link rel="stylesheet" href="/assets/stylesheets/material-icons.css">
 </head>
+
 <body>
 
-<form action="/oauth2/decision" method="post" class="pure-form pure-form-stacked">
-  <input name="transaction_id" type="hidden" value="<%= transactionID %>">
-  <fieldset>
-    <!-- Upper box with Title, username, and password -->
-    <div class="upper-box">
-      <!-- Title -->
-      <div>
-        <div class="main-text">Decision</div>
-        <div class="subtext">Authorization Server</div>
-      </div>
-      <div class="pure-control-group labels">
-        <p>
-
-        <p><%= user.name %>,</p>
-        The application <b><%= client.name %></b> is requesting access to your account.
-        <!-- TODO: Need to add specific scope information for the user -->
-        <p>Do you approve?</p>
-        </p>
-      </div>
-    </div>
-    <!-- Bottom box with Sign in -->
-    <div class="bottom-box">
-      <div class="pure-controls accept-cancel-buttons">
-        <div>
-          <input class="pure-button pure-button-primary" type="submit" value="Accept" id="allow">
-          <!-- Cheat to make a bit of spacing -->
-          <span>&nbsp&nbsp</span>
-          <input class="pure-button" type="submit" value="Deny" name="cancel" id="deny">
+  <div class='card-container'>
+    <form action="/oauth2/decision" method="post">
+      <input name="transaction_id" type="hidden" value="<%= transactionID %>">
+      <fieldset>
+        <div class="card-wide mdl-card mdl-shadow--2dp">
+          <div class="mdl-card__title">
+            <h2 class="mdl-card__title-text">Hi <%- typeof(user.name) === 'object' ? user.name.firstName + ' ' + user.name.lastName : user.name %>,</h2>
+          </div>
+          <div class="mdl-card__supporting-text">
+            <h6>
+              The application <b><%= client.name %></b> wants the following permissions from
+              your account to use the application <b><%= audience %></b>:
+              <ul class="mdl-list">
+                <% for (let index = 0; index < scopes.length; index++) { %>
+                <li class="mdl-list__item">
+                  <span class="mdl-list__item-primary-content">
+                    <i class="material-icons mdl-list__item-icon">done_outline</i>
+                    <%= scopes[index].description %>
+                  </span>
+                </li>
+                <% } %>
+              </ul>
+              <!-- <ul class="mdl-list">
+                <li class="mdl-list__item">
+                  <span class="mdl-list__item-primary-content">
+                    <i class="material-icons mdl-list__item-icon">done_outline</i>
+                    Read all files
+                  </span>
+                </li>
+                <li class="mdl-list__item">
+                  <span class="mdl-list__item-primary-content">
+                    <i class="material-icons mdl-list__item-icon">done_outline</i>
+                    Write all files
+                  </span>
+                </li>
+                <li class="mdl-list__item">
+                  <span class="mdl-list__item-primary-content">
+                    <i class="material-icons mdl-list__item-icon">done_outline</i>
+                    Configure settings options
+                  </span>
+                </li>
+              </ul> -->
+              Do you approve?
+            </h6>
+            <p class='text-help'>
+              Don't understand what is going on? pay a visit in <a href='' target="_blank">here</a>.
+            </p>
+          </div>
+          <div class="mdl-card__actions mdl-card--border centered">
+            <button class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" type="submit"
+              value="Accept" id="allow">
+              Approve
+            </button>
+            <!-- Cheat to make a bit of spacing -->
+            <span>&nbsp&nbsp</span>
+            <button class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" type="submit" value="Deny"
+              name="cancel" id="deny">
+              Deny
+            </button>
+          </div>
+          <div class="mdl-card__menu">
+            <div class="spike-logo">
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </fieldset>
-</form>
-
+      </fieldset>
+    </form>
+  </div>
 </body>
+
 </html>

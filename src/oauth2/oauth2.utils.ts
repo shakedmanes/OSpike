@@ -2,6 +2,7 @@
 
 import config from '../config';
 import { default as jwt } from 'jsonwebtoken';
+import { objWithoutKeys } from '../utils/objectUtils';
 import fs from 'fs';
 
 /**
@@ -49,10 +50,14 @@ export class OAuth2Utils {
 
   private static readonly privateKey = fs.readFileSync(config.privateKeyPath);
   private static readonly publicKey = fs.readFileSync(config.publicKeyPath);
+  private static readonly excludeFieldsUserPayload = ['RelayState', 'exp', 'iat', 'jti'];
 
-  static createJWTAccessToken(payload: JWTPayloadData) {
+  static createJWTAccessToken(payload: JWTPayloadData, user?: any) {
     return jwt.sign(
-      { ...payload },
+      {
+        ...payload,
+        ...(user ? { user: objWithoutKeys(user, this.excludeFieldsUserPayload) } : {}),
+      },
       OAuth2Utils.privateKey,
       {
         issuer: config.issuerHostUri,

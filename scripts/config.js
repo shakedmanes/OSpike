@@ -6,6 +6,7 @@ const config = {
   copyPath: [
     { src: './src/certs/files' ,dest: './dist/certs' },
     { src: './src/views' , dest: './dist' },
+    { src: './src/assets', dest: './dist'}
   ],
 
   // OpenSSL and Certificates configurations
@@ -30,6 +31,7 @@ const config = {
     '-apmSecretToken': 'APM_SECRET_TOKEN_HERE',
     '-logsDir': 'LOGS_DIR_HERE',
     '-logsFileName': 'LOGS_FILE_NAME_HERE',
+    '-shragaUrl': 'SHRAGA_URL_HERE',
   },
 
   defaultLogDir: './logs',

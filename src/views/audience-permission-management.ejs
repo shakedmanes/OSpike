@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Spike User Permission Management</title>
+
+    <!-- Favicon -->
+    <link rel='shortcut icon' type='image/x-icon' href='/assets/images/favicon.ico' />
+
+    <!-- Stylesheets -->
+    <link rel='stylesheet' href='/assets/stylesheets/audience-permission-management.css'>
+
+    <!-- Material Design Lite -->
+    <link rel="stylesheet" href="/assets/stylesheets/material.min.css">
+    <script src="/assets/js/material.min.js"></script>
+    <link rel="stylesheet" href="/assets/stylesheets/material-icons.css">
+</head>
+
+<body>
+    <div class="card-container">
+        <form action="/oauth2/user-permissions" method="post">
+            <input type="hidden" name="deleteAudId" value="<%= userPermissions[0].audienceId %>">
+            <% for (let index = 0; index < userPermissions.length; index++) { %>
+            <div class="card-wide mdl-card mdl-shadow--2dp">
+                <div class="mdl-card__title">
+                    <h2 class="mdl-card__title-text"><%= userPermissions[index].clientName %>'s Permissions</h2>
+                </div>
+                <div class="mdl-card__supporting-text card-text-overflow">
+                    <h7><b>'<%= userPermissions[index].clientName %>'</b> have the following permissions to
+                        <b>'<%= userPermissions[index].audienceClientName %>'</b>:</h7>
+                    <ul class="list-icon mdl-list">
+                        <% for (let sIndex = 0; sIndex < userPermissions[index].scopes.length; sIndex++) { %>
+                        <li class="mdl-list__item">
+                            <span class="mdl-list__item-primary-content">
+                                <i class="material-icons mdl-list__item-icon">done_outline</i>
+                                <%= userPermissions[index].scopes[sIndex].description %>
+                            </span>
+                        </li>
+                        <% } %>
+                    </ul>
+                </div>
+                <div class="mdl-card__actions mdl-card--border">
+                    <button class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" type="submit"
+                        name="deleteClientId" value="<%= userPermissions[index].clientId %>">
+                        Remove Permissions
+                    </button>
+                </div>
+                <div class="mdl-card__menu">
+                    <a class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect" target='_blank' href=''>
+                        <i class="material-icons">help</i>
+                    </a>
+                </div>
+            </div>
+            <% } %>
+        </form>
+    </div>
+
+</body>
+
+</html>

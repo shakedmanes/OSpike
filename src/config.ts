@@ -39,8 +39,21 @@ const config = {
   // OAuth2 Management Routes
   OAUTH_MANAGEMENT_ENDPOINT: '/register',
 
+  // OAuth2 User Permission Management Routes
+  OAUTH_PERMISSION_MANAGEMENT_ENDPOINT: '/user-permissions',
+
+  // Authentication Routes
+  AUTH_ENDPOINT: '/auth',
+  AUTH_SHRAGA_ENDPOINT: '/shraga',
+  AUTH_SHRAGA_CALLBACK_ENDPOINT: '/callback',
+
   // Well-known Routes for resource sharing (SSL Certificates, Public key, etc.)
   WELLKNOWN_ENDPOINT: '/.well-known',
+
+  // Shraga Callback Route
+  get SHRAGA_CALLBACK_ENDPOINT() {
+    return `${this.OAUTH_ENDPOINT + this.OAUTH_AUTHORIZATION_ENDPOINT}`;
+  },
 
   // Bcrypt
   BCRYPT_ROUNDS: 8,

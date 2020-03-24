@@ -1,6 +1,6 @@
 // management.routes
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import config from '../../config';
 import { ManagementController } from './management.controller';
@@ -14,14 +14,29 @@ import { LOG_LEVEL, log, parseLogData } from '../../utils/logger';
  * The first restrict only the client manager.
  * The seconds restrict the client manager and also the registration token of the client.
  */
-const authenticateMiddleware = passport.authenticate(
-  config.CLIENT_MANAGER_PASSPORT_STRATEGY,
-  { session: false, failWithError: true, failureMessage: true },
-);
-const authenticateManagementMiddleware = passport.authenticate(
-  config.CLIENT_MANAGER_PASSPORT_MANAGEMENT_STRATEGY,
-  { session: false, failWithError: true, failureMessage: true },
-);
+const authenticateMiddleware =
+  function (req: Request, res: Response, next: NextFunction) {
+    const passportCallback = Wrapper.wrapPassportCallback(req, res, next);
+    return (
+      passport.authenticate(
+        config.CLIENT_MANAGER_PASSPORT_STRATEGY,
+        { session: false, failWithError: true, failureMessage: true },
+        passportCallback,
+      )(req, res, next)
+    );
+  };
+
+const authenticateManagementMiddleware =
+  function (req: Request, res: Response, next: NextFunction) {
+    const passportCallback = Wrapper.wrapPassportCallback(req, res, next);
+    return (
+      passport.authenticate(
+        config.CLIENT_MANAGER_PASSPORT_MANAGEMENT_STRATEGY,
+        { session: false, failWithError: true, failureMessage: true },
+        passportCallback,
+      )(req, res, next)
+    );
+  };
 
 export const errorMessages = {
   MISSING_CLIENT_INFORMATION: 'Client information parameter is missing',

@@ -29,6 +29,8 @@ Adjust your settings in each one of them for generating appropriate `.env` file 
 >
 > `-logFileName` The name of the log file. *Default value:* 'ospike-log.txt'
 >
+> `-shragaUrl` Full URL to [Shraga](https://github.com/ShragaUser/adfs-proxy-shraga) server for handling the authentication of end user
+>
 >
 > *OPTIONAL Settings*:
 >

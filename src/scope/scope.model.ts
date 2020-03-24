@@ -22,6 +22,10 @@ const scopeSchema = new Schema(
       required: true,
       default: [],
     },
+    description: {
+      type: String,
+      default: 'No description provided',
+    },
   },
   {
     toObject: { virtuals: true },
