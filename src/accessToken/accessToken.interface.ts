@@ -2,14 +2,14 @@
 
 import { IBaseModel } from '../generic/generic.interface';
 import { IClient } from '../client/client.interface';
-import { IUser } from '../user/user.interface';
+import { IScope } from '../scope/scope.interface';
 
 export interface IAccessToken extends IBaseModel {
   clientId: string | IClient; // Client ID or Client Model after population
-  userId?: string | IUser; // User ID or User model after population
+  userId?: string; // User ID
   audience: string; // Audience of the token (for which resource server the token should be used)
   value: string;
-  scopes: string[];
+  scopes: string[] | IScope[];
   grantType: string;
   expireAt: Date;
 }

@@ -1,0 +1,29 @@
+.card-wide.mdl-card {
+    width: 512px;
+}
+
+.card-wide > .mdl-card__title {
+    color: rgb(36, 87, 228);
+    height: 270px;
+    background: url('/assets/images/clip-art.png') center / cover;
+}
+
+.spike-logo {
+    height: 60px;
+    width: 60px;
+    border-radius: 100%;
+    background: url('/assets/images/spike-logo.png') center / cover ;
+}
+
+.centered {
+    text-align: center;
+}
+
+.card-container {
+    display: flex;
+    justify-content: center;
+}
+
+.text-help {
+    font-size: 12px;
+}

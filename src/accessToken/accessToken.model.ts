@@ -2,11 +2,9 @@
 
 import { Schema, model } from 'mongoose';
 import { collectionName as ClientModelName } from '../client/client.interface';
-import { collectionName as UserModelName } from '../user/user.interface';
 import { collectionName as ScopeModelName } from '../scope/scope.interface';
 import { IAccessToken, collectionName } from './accessToken.interface';
 import { clientRefValidator } from '../client/client.validator';
-import { userRefValidator } from '../user/user.validator';
 import config from '../config';
 import { AccessTokenLimitExceeded } from './accessToken.error';
 import { scopeRefValidator } from '../scope/scope.validator';
@@ -35,9 +33,6 @@ const accessTokenSchema = new Schema(
     },
     userId: {
       type: String,
-      ref: UserModelName,
-      // required: true,
-      validate: userRefValidator as any,
     },
     audience: {
       type: String,
@@ -45,7 +40,7 @@ const accessTokenSchema = new Schema(
     },
     value: {
       type: String,
-      unique: true,
+      // unique: true,
       required: true,
     },
     scopes: {
@@ -74,71 +69,64 @@ const accessTokenSchema = new Schema(
 accessTokenSchema.pre<IAccessToken>(
   'save',
   async function (this: IAccessToken, next: any) {
-    // const foundToken = await accessTokenModel.findOne({
-    //   clientId: this.clientId,
-    //   ...(this.userId ? { userId: this.userId } : { userId : { $exists: false } }),
-    //   audience: this.audience,
-    // });
 
     // Error object for violation of access token limitation
     let error = undefined;
 
-    const foundTokens = await accessTokenModel.find({
-      clientId: this.clientId,
-      ...(this.userId ? { userId: this.userId } : { userId: { $exists: false } }),
-      audience: this.audience,
-    });
+    // Token created for user, should not have limitation
+    if (this.userId) {
+      next(error);
+    } else { // Otherwise, token should have limitation
+      const foundTokens = await accessTokenModel.find({
+        clientId: this.clientId,
+        userId: { $exists: false } ,
+        audience: this.audience,
+      });
 
-    let currentActiveTokensCount = foundTokens.length;
+      let currentActiveTokensCount = foundTokens.length;
 
-    for (const currToken of foundTokens) {
+      for (const currToken of foundTokens) {
 
-      // Checking if the access token is invalid by expiration time,
-      // or if theres any other access token with the same value of the currently
-      // created access token.
-      // Access tokens can have same value only if the requests for the access token
-      // performed almost in the same time, in matter of milliseconds.
-      // (Because the value of the 'exp' and 'iat' value in the JWT is in seconds)
-      // If we allow access token to be saved with the same value, it will violate
-      // the unique index on the 'value' key.
+        // Checking if the access token is invalid by expiration time,
+        // or if theres any other access token with the same value of the currently
+        // created access token.
+        // Access tokens can have same value only if the requests for the access token
+        // performed almost in the same time, in matter of milliseconds.
+        // (Because the value of the 'exp' and 'iat' value in the JWT is in seconds)
+        // If we allow access token to be saved with the same value, it will violate
+        // the unique index on the 'value' key.
 
-      if ((currToken.expireAt.getTime() +
-          config.ACCESS_TOKEN_EXPIRATION_TIME * 1000 <= Date.now()) ||
-          (currToken.value === this.value)) {
-        await currToken.remove();
-        currentActiveTokensCount -= 1;
+        if ((currToken.expireAt.getTime() +
+            config.ACCESS_TOKEN_EXPIRATION_TIME * 1000 <= Date.now()) ||
+            (currToken.value === this.value)) {
+          await currToken.remove();
+          currentActiveTokensCount -= 1;
+        }
       }
+
+      // TODO: Construct better error handling for errors like that
+      if (currentActiveTokensCount >= config.ACCESS_TOKEN_COUNT_LIMIT) {
+
+        // Creating this error as MongoError for easy control via mongoose error handler
+        error = new AccessTokenLimitExceeded(
+          errorMessages.LIMIT_VIOLATION_ACCESS_TOKEN_WITHOUT_USER,
+        );
+      }
+
+      next(error);
     }
-
-    // TODO: Construct better error handling for errors like that
-    if (currentActiveTokensCount >= config.ACCESS_TOKEN_COUNT_LIMIT) {
-
-      // Creating this error as MongoError for easy control via mongoose error handler
-      error = new AccessTokenLimitExceeded(
-        this.userId ?
-        errorMessages.LIMIT_VIOLATION_ACCESS_TOKEN :
-        errorMessages.LIMIT_VIOLATION_ACCESS_TOKEN_WITHOUT_USER,
-      );
-    }
-
-    // if (foundToken &&
-    //    (foundToken.expireAt.getTime() +
-    //    (config.ACCESS_TOKEN_EXPIRATION_TIME * 1000)) <= Date.now()) {
-    //   await foundToken.remove();
-    // }
-
-    next(error);
-  });
+  },
+);
 
 // TODO: Construct better error handling for errors from mongo server
-accessTokenSchema.post('save', function save(this: IAccessToken, err: any, doc: any, next: any) {
-  if (err.name === 'MongoError' && err.code === 11000) {
-    err.message = this.userId ? errorMessages.DUPLICATE_ACCESS_TOKEN :
-                                errorMessages.DUPLICATE_ACCESS_TOKEN_WITHOUT_USER;
-  }
+// accessTokenSchema.post('save', function save(this: IAccessToken, err: any, doc: any, next: any) {
+//   if (err.name === 'MongoError' && err.code === 11000) {
+//     err.message = this.userId ? errorMessages.DUPLICATE_ACCESS_TOKEN :
+//                                 errorMessages.DUPLICATE_ACCESS_TOKEN_WITHOUT_USER;
+//   }
 
-  next(err);
-});
+//   next(err);
+// });
 
 // Virtual field for audience client validations and population
 accessTokenSchema.virtual('audienceClient', {

@@ -24,6 +24,9 @@ const refreshTokenSchema = new Schema({
     required: true,
     validate: accessTokenRefValidator as any,
   },
+  userProperties: {
+    type: Object,
+  },
   expireAt: {
     type: Date,
     default: Date.now,

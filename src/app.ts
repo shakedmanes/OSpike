@@ -1,18 +1,21 @@
 // app
 
 import * as bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser';
 import passport from 'passport';
-import express from 'express';
+import express, { NextFunction } from 'express';
 import morgan from 'morgan';
 import path from 'path';
 import './passport_config'; // Setting up all passport middlewares
 import './db_config'; // Create mongodb connections
 import { default as session } from 'express-session';
 import { default as oauthRouter } from './oauth2/oauth2.routes';
+import { default as authRouter } from './auth/auth.routes';
 import { default as wellKnownRouter } from './certs/certs.routes';
 import { errorHandler } from './utils/error.handler';
 import { log, parseLogData, LOG_LEVEL } from './utils/logger';
 import config from './config';
+import { writeFileSync } from 'fs';
 
 const app = express();
 
@@ -23,10 +26,14 @@ const morganFormatting: any = { prod: 'common', dev: 'dev', test: 'tiny' };
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '/views'));
 
+// Static files middleware
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
 // Middlewares
 app.set('port', process.env.PORT);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(morgan(morganFormatting[process.env.NODE_ENV || 'dev']));
 
 // Use express session support since OAuth2orize requires it
@@ -44,6 +51,9 @@ app.use(passport.session());
 
 // OAuth2 routes
 app.use(config.OAUTH_ENDPOINT, oauthRouter);
+
+// Authentication routes (Shraga)
+app.use(config.AUTH_ENDPOINT, authRouter);
 
 // Well known routes
 app.use(config.WELLKNOWN_ENDPOINT, wellKnownRouter);

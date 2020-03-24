@@ -1,4 +1,15 @@
-# 1.0.0 (2020-03-24)
+# v1.1.0 (2020-03-24)
+
+
+### Features
+
+* Add support for user authentication using shraga proxy and support ([21f2522](https://github.com/shakedmanes/authorization-server/commit/21f252200ad2a1fd48dc917ae130f2eacdc8f9d9))
+* Add user information given by authentication provider on token ([1e7507a](https://github.com/shakedmanes/authorization-server/commit/1e7507ae162ad1cc303611c1a2a51780a43aa4d3))
+* Create user permissions management endpoint for managing user ([e7eef2d](https://github.com/shakedmanes/authorization-server/commit/e7eef2d99e0da11ce92668fc30044695051da481))
+* Creating improved decision endpoint for user consent ([7a51ad7](https://github.com/shakedmanes/authorization-server/commit/7a51ad7eddd5c43b7be9ba1b6ddf89d5964fcb0d))
+
+
+# v1.0.0 (2020-03-24)
 
 
 ### Bug Fixes
