@@ -58,7 +58,7 @@
     "express": "^4.16.3",
     "express-session": "^1.15.6",
     "jsonwebtoken": "^8.3.0",
-    "mongoose": "^5.2.7",
+    "mongoose": "^5.7.5",
     "morgan": "^1.9.1",
     "nanoid": "^1.1.0",
     "oauth2orize": "^1.11.0",
