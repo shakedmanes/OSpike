@@ -1,5 +1,5 @@
 {
-  "name": "authorization-server",
+  "name": "ospike",
   "version": "1.0.0",
   "description": "An OAuth2 authorization server supporting OpenID Connect",
   "main": "app.js",
